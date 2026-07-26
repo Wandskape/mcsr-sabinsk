@@ -1,12 +1,15 @@
-import { Controller, Get, Header, Param } from "@nestjs/common"
+import { Controller, Get, Header, Inject, Param } from "@nestjs/common"
 import { ApiOperation, ApiTags } from "@nestjs/swagger"
 
-import type { QualificationService } from "./qualification.service.js"
+import { QualificationService } from "./qualification.service.js"
 
 @ApiTags("qualification")
 @Controller()
 export class QualificationController {
-  constructor(private readonly qualification: QualificationService) {}
+  constructor(
+    @Inject(QualificationService)
+    private readonly qualification: QualificationService
+  ) {}
 
   @Get("qualification-matches/:matchId")
   @Header("Cache-Control", "public, max-age=30")

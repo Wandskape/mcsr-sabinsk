@@ -1,12 +1,17 @@
-import { Controller, Get, ServiceUnavailableException } from "@nestjs/common"
+import {
+  Controller,
+  Get,
+  Inject,
+  ServiceUnavailableException,
+} from "@nestjs/common"
 import { ApiOperation, ApiTags } from "@nestjs/swagger"
 
-import type { PrismaService } from "../prisma/prisma.service.js"
+import { PrismaService } from "../prisma/prisma.service.js"
 
 @ApiTags("health")
 @Controller("health")
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   @Get("live")
   @ApiOperation({ summary: "Проверка процесса backend" })

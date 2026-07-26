@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Inject, Injectable, NotFoundException } from "@nestjs/common"
 import type {
   ParticipantMatchResult,
   QualificationMatchResult,
   TimelineSegment,
 } from "@mcsr-sabinsk/shared"
 
-import type { PrismaService } from "../prisma/prisma.service.js"
+import { PrismaService } from "../prisma/prisma.service.js"
 
 function parseTimeline(value: unknown): TimelineSegment[] {
   if (!Array.isArray(value)) return []
@@ -36,7 +36,7 @@ function parseTimeline(value: unknown): TimelineSegment[] {
 
 @Injectable()
 export class QualificationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getMatch(matchId: string) {
     const match = await this.prisma.qualificationMatch.findUnique({

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Inject, Injectable, NotFoundException } from "@nestjs/common"
 import type {
   PublicTournament,
   QualificationMatchSummary,
@@ -7,7 +7,7 @@ import type {
 
 import type { DivisionType, Prisma } from "../../generated/prisma/client.js"
 import { TournamentStatus } from "../../generated/prisma/client.js"
-import type { PrismaService } from "../prisma/prisma.service.js"
+import { PrismaService } from "../prisma/prisma.service.js"
 import type { ListTournamentsQueryDto } from "./dto/list-tournaments-query.dto.js"
 import { selectDefaultTournament } from "./tournament-selection.js"
 
@@ -28,7 +28,7 @@ type PublicTournamentRecord = Prisma.TournamentGetPayload<{
 
 @Injectable()
 export class TournamentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async list(query: ListTournamentsQueryDto) {
     const statuses = (query.status ?? Object.values(TournamentStatus)).filter(

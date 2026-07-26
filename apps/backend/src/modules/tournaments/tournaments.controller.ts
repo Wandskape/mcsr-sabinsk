@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Header,
+  Inject,
   Param,
   ParseEnumPipe,
   Query,
@@ -10,12 +11,15 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger"
 
 import { DivisionType } from "../../generated/prisma/enums.js"
 import type { ListTournamentsQueryDto } from "./dto/list-tournaments-query.dto.js"
-import type { TournamentsService } from "./tournaments.service.js"
+import { TournamentsService } from "./tournaments.service.js"
 
 @ApiTags("tournaments")
 @Controller("tournaments")
 export class TournamentsController {
-  constructor(private readonly tournaments: TournamentsService) {}
+  constructor(
+    @Inject(TournamentsService)
+    private readonly tournaments: TournamentsService
+  ) {}
 
   @Get()
   @Header("Cache-Control", "public, max-age=30")
