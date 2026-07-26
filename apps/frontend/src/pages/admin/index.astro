@@ -1,0 +1,11 @@
+---
+import { AdminDashboard } from "@/features/admin/AdminDashboard"
+import AdminLayout from "@/layouts/AdminLayout.astro"
+---
+
+<AdminLayout
+  title="Панель управления — MCSR Сабинск"
+  description="Управление турнирами MCSR Сабинск."
+>
+  <AdminDashboard client:load />
+</AdminLayout>

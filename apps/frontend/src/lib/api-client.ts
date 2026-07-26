@@ -1,6 +1,6 @@
 import type { ApiEnvelope } from "@mcsr-sabinsk/shared"
 
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.PUBLIC_API_BASE_URL ?? "http://localhost:3000/api/v1"
 
 interface ApiErrorResponse {
@@ -24,10 +24,49 @@ export async function apiRequest<T>(
   signal?: AbortSignal
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
     headers: { Accept: "application/json" },
     signal: signal ?? null,
   })
 
+  return readApiResponse<T>(response)
+}
+
+export async function apiCommand<T>(
+  path: string,
+  options: {
+    method: "POST" | "PUT" | "PATCH" | "DELETE"
+    body?: unknown
+    csrfToken?: string
+    signal?: AbortSignal
+  }
+): Promise<T> {
+  const headers = new Headers({ Accept: "application/json" })
+  if (options.body !== undefined) {
+    headers.set("content-type", "application/json")
+  }
+  if (options.csrfToken) {
+    headers.set("x-csrf-token", options.csrfToken)
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: options.method,
+    credentials: "include",
+    headers,
+    ...(options.body === undefined
+      ? {}
+      : { body: JSON.stringify(options.body) }),
+    signal: options.signal ?? null,
+  })
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return readApiResponse<T>(response)
+}
+
+async function readApiResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response
       .json()

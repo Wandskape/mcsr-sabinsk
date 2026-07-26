@@ -1,0 +1,11 @@
+---
+import { AdminLoginPage } from "@/features/admin/AdminLoginPage"
+import AdminLayout from "@/layouts/AdminLayout.astro"
+---
+
+<AdminLayout
+  title="Вход администратора — MCSR Сабинск"
+  description="Вход в панель управления турнирами MCSR Сабинск."
+>
+  <AdminLoginPage client:load />
+</AdminLayout>

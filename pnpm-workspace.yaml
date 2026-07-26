@@ -9,3 +9,6 @@ allowBuilds:
   esbuild: true
   prisma: true
   sharp: true
+
+minimumReleaseAgeExclude:
+  - "@hookform/resolvers@5.5.7"

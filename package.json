@@ -23,6 +23,7 @@
     "db:migrate": "pnpm --filter @mcsr-sabinsk/backend prisma:migrate",
     "db:seed": "pnpm --filter @mcsr-sabinsk/backend prisma:seed",
     "db:studio": "pnpm --filter @mcsr-sabinsk/backend prisma:studio",
+    "admin:bootstrap": "pnpm --filter @mcsr-sabinsk/backend admin:bootstrap",
     "infra:up": "docker-compose up -d postgres minio",
     "infra:down": "docker-compose down"
   },

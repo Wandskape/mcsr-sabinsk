@@ -6,7 +6,9 @@ import { ValidationPipe } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import { NestFactory } from "@nestjs/core"
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
+import cookieParser from "cookie-parser"
 import type { NextFunction, Request, Response } from "express"
+import helmet from "helmet"
 
 import { AppModule } from "./app.module.js"
 import { ApiExceptionFilter } from "./common/filters/api-exception.filter.js"
@@ -17,7 +19,25 @@ async function bootstrap() {
   })
   const config = app.get(ConfigService)
 
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          imgSrc: ["'self'", "data:"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      ...(config.getOrThrow<string>("NODE_ENV") === "production"
+        ? {}
+        : { hsts: false }),
+    })
+  )
+  app.use(cookieParser())
   app.setGlobalPrefix("api/v1")
+  app.getHttpAdapter().getInstance().set("trust proxy", "loopback")
   app.enableShutdownHooks()
   app.enableCors({
     origin: config.getOrThrow<string>("FRONTEND_ORIGIN"),
@@ -43,6 +63,7 @@ async function bootstrap() {
     .setTitle("MCSR Сабинск API")
     .setDescription("REST API турниров MCSR Сабинск")
     .setVersion("1.0")
+    .addCookieAuth(config.getOrThrow<string>("SESSION_COOKIE_NAME"))
     .build()
   const document = SwaggerModule.createDocument(app, swaggerConfig)
   SwaggerModule.setup("api/docs", app, document)

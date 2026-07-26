@@ -1,0 +1,193 @@
+import type {
+  AdminAuditEntry,
+  AdminOverview,
+  AdminSession,
+} from "@mcsr-sabinsk/shared"
+import {
+  Activity,
+  ClipboardList,
+  FilePenLine,
+  LoaderCircle,
+  LogOut,
+  ShieldCheck,
+  Trophy,
+} from "lucide-react"
+import { useEffect, useState } from "react"
+
+import { ApiError, apiCommand, apiRequest } from "@/lib/api-client"
+
+const AUDIT_LABELS: Record<string, string> = {
+  AUTH_LOGIN_SUCCEEDED: "Вход выполнен",
+  AUTH_LOGIN_FAILED: "Неудачная попытка входа",
+  AUTH_LOGIN_LOCKED: "Вход временно заблокирован",
+  AUTH_LOGIN_BLOCKED: "Отклонена попытка входа",
+  AUTH_LOGOUT: "Выход выполнен",
+}
+
+interface DashboardData {
+  session: AdminSession
+  overview: AdminOverview
+}
+
+function formatAuditTime(value: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Moscow",
+  }).format(new Date(value))
+}
+
+function AuditRow({ entry }: { entry: AdminAuditEntry }) {
+  return (
+    <li className="admin-audit-row">
+      <span className="admin-audit-mark" aria-hidden="true" />
+      <span>
+        <strong>{AUDIT_LABELS[entry.action] ?? entry.action}</strong>
+        <small>
+          {entry.adminUsername} · {formatAuditTime(entry.createdAt)}
+        </small>
+      </span>
+    </li>
+  )
+}
+
+export function AdminDashboard() {
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    Promise.all([
+      apiRequest<AdminSession>("/auth/me", controller.signal),
+      apiRequest<AdminOverview>("/admin/overview", controller.signal),
+    ])
+      .then(([session, overview]) => setData({ session, overview }))
+      .catch((reason: unknown) => {
+        if (reason instanceof ApiError && reason.status === 401) {
+          window.location.replace("/admin/login")
+          return
+        }
+        setError("Не удалось загрузить админ-панель. Проверьте backend.")
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  async function logout() {
+    if (!data) return
+    setIsLoggingOut(true)
+    try {
+      await apiCommand<void>("/auth/logout", {
+        method: "POST",
+        csrfToken: data.session.csrfToken,
+      })
+    } finally {
+      window.location.replace("/admin/login")
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="admin-state" role="alert">
+        <ShieldCheck size={30} aria-hidden="true" />
+        <h1>Админ-панель недоступна</h1>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>
+          Повторить попытку
+        </button>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="admin-state">
+        <LoaderCircle className="spin" size={28} aria-hidden="true" />
+        <p>Загружаем админ-панель…</p>
+      </div>
+    )
+  }
+
+  const { session, overview } = data
+  return (
+    <div className="admin-shell">
+      <aside className="admin-sidebar">
+        <a className="admin-brand" href="/admin">
+          <span>MS</span>
+          <strong>MCSR Сабинск</strong>
+        </a>
+        <nav aria-label="Разделы админ-панели">
+          <a className="active" href="/admin">
+            <ClipboardList size={18} aria-hidden="true" />
+            Обзор
+          </a>
+          <span className="disabled" aria-disabled="true">
+            <Trophy size={18} aria-hidden="true" />
+            Турниры
+            <small>следующий этап</small>
+          </span>
+        </nav>
+        <div className="admin-sidebar-footer">
+          <small>Вы вошли как</small>
+          <strong>{session.admin.username}</strong>
+          <button disabled={isLoggingOut} onClick={logout}>
+            {isLoggingOut ? (
+              <LoaderCircle className="spin" size={17} aria-hidden="true" />
+            ) : (
+              <LogOut size={17} aria-hidden="true" />
+            )}
+            Выйти
+          </button>
+        </div>
+      </aside>
+
+      <main className="admin-main">
+        <header className="admin-page-header">
+          <div>
+            <p className="admin-kicker">Панель управления</p>
+            <h1>Обзор</h1>
+          </div>
+          <a href="/">Открыть публичную страницу</a>
+        </header>
+
+        <section className="admin-stat-grid" aria-label="Сводка турниров">
+          <article>
+            <Trophy size={22} aria-hidden="true" />
+            <span>Всего турниров</span>
+            <strong>{overview.tournamentCount}</strong>
+          </article>
+          <article>
+            <Activity size={22} aria-hidden="true" />
+            <span>Идут сейчас</span>
+            <strong>{overview.activeTournamentCount}</strong>
+          </article>
+          <article>
+            <FilePenLine size={22} aria-hidden="true" />
+            <span>Черновики</span>
+            <strong>{overview.draftTournamentCount}</strong>
+          </article>
+        </section>
+
+        <section className="admin-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="admin-kicker">Безопасность</p>
+              <h2>Последние действия</h2>
+            </div>
+            <ShieldCheck size={24} aria-hidden="true" />
+          </div>
+          {overview.recentAudit.length === 0 ? (
+            <p className="admin-empty">Действий пока нет.</p>
+          ) : (
+            <ul className="admin-audit-list">
+              {overview.recentAudit.map((entry) => (
+                <AuditRow key={entry.id} entry={entry} />
+              ))}
+            </ul>
+          )}
+        </section>
+      </main>
+    </div>
+  )
+}

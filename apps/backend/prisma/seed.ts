@@ -26,18 +26,22 @@ async function seedAdmin() {
     return
   }
 
+  const existingAdmin = await prisma.adminUser.findUnique({
+    where: { username },
+    select: { id: true },
+  })
+  if (existingAdmin) {
+    console.info(
+      `Администратор ${username} уже существует — пароль при seed не изменён.`
+    )
+    return
+  }
+
   const passwordHash = await argon2.hash(password, {
     type: argon2.argon2id,
   })
-
-  await prisma.adminUser.upsert({
-    where: { username },
-    update: {
-      passwordHash,
-      passwordChangedAt: new Date(),
-      isActive: true,
-    },
-    create: {
+  await prisma.adminUser.create({
+    data: {
       username,
       passwordHash,
       passwordChangedAt: new Date(),

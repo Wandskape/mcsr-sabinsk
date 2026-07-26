@@ -4,11 +4,13 @@ interface Environment {
   FRONTEND_ORIGIN: string
   DATABASE_URL: string
   SESSION_SECRET: string
+  CSRF_SECRET: string
+  SESSION_COOKIE_NAME: string
 }
 
 function requireString(
   source: Record<string, unknown>,
-  key: keyof Omit<Environment, "NODE_ENV" | "PORT">
+  key: keyof Omit<Environment, "NODE_ENV" | "PORT" | "SESSION_COOKIE_NAME">
 ) {
   const value = source[key]
   if (typeof value !== "string" || value.trim() === "") {
@@ -38,6 +40,25 @@ export function validateEnvironment(
   if (sessionSecret.length < 32) {
     throw new Error("SESSION_SECRET must contain at least 32 characters")
   }
+  const configuredCsrfSecret = source.CSRF_SECRET
+  const csrfSecret =
+    typeof configuredCsrfSecret === "string" &&
+    configuredCsrfSecret.trim() !== ""
+      ? configuredCsrfSecret
+      : nodeEnvironment === "production"
+        ? requireString(source, "CSRF_SECRET")
+        : sessionSecret
+  if (csrfSecret.length < 32) {
+    throw new Error("CSRF_SECRET must contain at least 32 characters")
+  }
+  const sessionCookieName =
+    typeof source.SESSION_COOKIE_NAME === "string" &&
+    source.SESSION_COOKIE_NAME.trim() !== ""
+      ? source.SESSION_COOKIE_NAME
+      : "mcsr_admin_session"
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionCookieName)) {
+    throw new Error("SESSION_COOKIE_NAME contains unsupported characters")
+  }
 
   return {
     ...source,
@@ -46,5 +67,7 @@ export function validateEnvironment(
     FRONTEND_ORIGIN: requireString(source, "FRONTEND_ORIGIN"),
     DATABASE_URL: requireString(source, "DATABASE_URL"),
     SESSION_SECRET: sessionSecret,
+    CSRF_SECRET: csrfSecret,
+    SESSION_COOKIE_NAME: sessionCookieName,
   }
 }

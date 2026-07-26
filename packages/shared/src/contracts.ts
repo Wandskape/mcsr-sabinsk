@@ -8,6 +8,34 @@ export interface ApiEnvelope<T> {
   data: T
 }
 
+export interface AdminIdentity {
+  id: string
+  username: string
+}
+
+export interface AdminSession {
+  admin: AdminIdentity
+  expiresAt: string
+  csrfToken: string
+}
+
+export interface AdminAuditEntry {
+  id: string
+  action: string
+  entityType: string
+  entityId: string
+  reason: string | null
+  createdAt: string
+  adminUsername: string
+}
+
+export interface AdminOverview {
+  tournamentCount: number
+  activeTournamentCount: number
+  draftTournamentCount: number
+  recentAudit: AdminAuditEntry[]
+}
+
 export interface PublicDivision {
   id: string
   type: DivisionType

@@ -15,7 +15,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "admin:bootstrap": "tsx src/cli/bootstrap-admin.ts"
   },
   "dependencies": {
     "@mcsr-sabinsk/shared": "workspace:*",
@@ -24,12 +25,15 @@
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-express": "^11.1.28",
     "@nestjs/swagger": "^11.4.6",
+    "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
     "argon2": "^0.45.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.3.1",
+    "helmet": "^8.3.0",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
@@ -37,6 +41,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.16",
     "@nestjs/testing": "^11.1.28",
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/node": "^25.4.0",
     "@types/pg": "^8.16.0",
