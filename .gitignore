@@ -1,0 +1,26 @@
+# Reference projects and external API documentation
+/api-docs-master/
+/mscl-website-main/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build and test output
+dist/
+.astro/
+coverage/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
