@@ -1,0 +1,36 @@
+{
+  "name": "@mcsr-sabinsk/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "pnpm --filter @mcsr-sabinsk/shared build",
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.7",
+    "@astrojs/react": "^4.4.2",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@mcsr-sabinsk/shared": "workspace:*",
+    "@tanstack/react-query": "^5.101.4",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^6.0.8",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4"
+  }
+}

@@ -1,0 +1,8 @@
+api-docs-master/
+mscl-website-main/
+documentation/
+apps/backend/src/generated/
+**/dist/
+**/.astro/
+**/coverage/
+**/node_modules/

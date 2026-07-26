@@ -1,0 +1,278 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TournamentStatus {
+  DRAFT
+  UPCOMING
+  QUALIFICATION
+  PLAYOFF
+  COMPLETED
+}
+
+enum DivisionType {
+  BEGINNER
+  EXPERIENCED
+  PRO
+}
+
+enum QualificationResultStatus {
+  COMPLETED
+  DNF
+  MISSED
+}
+
+enum ImportStatus {
+  PENDING
+  APPLIED
+  FAILED
+  SUPERSEDED
+}
+
+enum PlayoffMatchKind {
+  MAIN
+  THIRD_PLACE
+}
+
+enum PlayoffMatchStatus {
+  EMPTY
+  READY
+  COMPLETED
+}
+
+model AdminUser {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  username           String                     @unique @db.VarChar(64)
+  passwordHash       String
+  isActive           Boolean                    @default(true)
+  passwordChangedAt  DateTime                   @db.Timestamptz(3)
+  lastLoginAt        DateTime?                  @db.Timestamptz(3)
+  failedLoginCount   Int                        @default(0)
+  lockedUntil        DateTime?                  @db.Timestamptz(3)
+  sessions           AdminSession[]
+  qualificationImports QualificationMatchImport[]
+  auditLogs          AuditLog[]
+
+  @@index([username])
+}
+
+model AdminSession {
+  id          String    @id @default(uuid()) @db.Uuid
+  adminUserId String    @db.Uuid
+  tokenHash   String    @unique
+  expiresAt   DateTime  @db.Timestamptz(3)
+  lastSeenAt  DateTime  @db.Timestamptz(3)
+  ipHash      String?
+  userAgent   String?   @db.VarChar(512)
+  revokedAt   DateTime? @db.Timestamptz(3)
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, expiresAt])
+}
+
+model Tournament {
+  id             String                   @id @default(uuid()) @db.Uuid
+  name           String                   @db.VarChar(120)
+  slug           String                   @unique @db.VarChar(140)
+  description    String                   @default("") @db.Text
+  startsAt       DateTime                 @db.Timestamptz(3)
+  endsAt         DateTime                 @db.Timestamptz(3)
+  status         TournamentStatus
+  coverObjectKey String?
+  coverUrl       String?
+  version        Int                      @default(1)
+  completedAt    DateTime?                @db.Timestamptz(3)
+  divisions      Division[]
+  registrations  TournamentRegistration[]
+
+  @@index([status, startsAt])
+  @@index([endsAt])
+}
+
+model Division {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  tournamentId         String                   @db.Uuid
+  type                 DivisionType
+  displayName          String                   @db.VarChar(32)
+  timeLimitMs          Int
+  sortOrder            Int
+  version              Int                      @default(1)
+  tournament           Tournament               @relation(fields: [tournamentId], references: [id], onDelete: Restrict)
+  registrations        TournamentRegistration[]
+  qualificationMatches QualificationMatch[]
+  playoffBracket       PlayoffBracket?
+
+  @@unique([tournamentId, type])
+  @@index([tournamentId, sortOrder])
+}
+
+model Participant {
+  id                    String                   @id @default(uuid()) @db.Uuid
+  rankedUuid            String                   @unique @db.Char(32)
+  currentNickname       String                   @db.VarChar(32)
+  nicknameLower         String                   @db.VarChar(32)
+  lastRankedSyncAt      DateTime                 @db.Timestamptz(3)
+  rankedProfileSnapshot Json
+  registrations         TournamentRegistration[]
+
+  @@index([nicknameLower])
+}
+
+model TournamentRegistration {
+  id                  String                @id @default(uuid()) @db.Uuid
+  tournamentId        String                @db.Uuid
+  divisionId          String                @db.Uuid
+  participantId       String                @db.Uuid
+  nicknameSnapshot    String                @db.VarChar(32)
+  qualificationPoints Int                   @default(0)
+  averageTimeMs       Int?
+  playedMatches       Int                   @default(0)
+  dnfCount            Int                   @default(0)
+  missedCount         Int                   @default(0)
+  version             Int                   @default(1)
+  tournament          Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Restrict)
+  division            Division              @relation(fields: [divisionId], references: [id], onDelete: Restrict)
+  participant         Participant           @relation(fields: [participantId], references: [id], onDelete: Restrict)
+  qualificationResults QualificationResult[]
+  wonQualificationMatches QualificationMatch[] @relation("QualificationMatchWinner")
+  playoffSeeds        PlayoffSeed[]
+  playoffParticipant1 PlayoffMatch[]        @relation("PlayoffParticipant1")
+  playoffParticipant2 PlayoffMatch[]        @relation("PlayoffParticipant2")
+  playoffWins         PlayoffMatch[]        @relation("PlayoffWinner")
+
+  @@unique([tournamentId, participantId])
+  @@index([divisionId, qualificationPoints])
+}
+
+model QualificationMatch {
+  id                   String                     @id @default(uuid()) @db.Uuid
+  divisionId           String                     @db.Uuid
+  matchNumber          Int
+  rankedMatchId        String                     @unique @db.VarChar(32)
+  rankedPlayedAt       DateTime?                  @db.Timestamptz(3)
+  winnerRegistrationId String?                    @db.Uuid
+  activeImportId       String?                    @unique @db.Uuid
+  version              Int                        @default(1)
+  division             Division                   @relation(fields: [divisionId], references: [id], onDelete: Restrict)
+  winner               TournamentRegistration?    @relation("QualificationMatchWinner", fields: [winnerRegistrationId], references: [id], onDelete: SetNull)
+  activeImport         QualificationMatchImport?  @relation("ActiveQualificationImport", fields: [activeImportId], references: [id], onDelete: SetNull)
+  imports              QualificationMatchImport[] @relation("QualificationMatchImports")
+  results              QualificationResult[]
+
+  @@unique([divisionId, matchNumber])
+  @@index([divisionId, rankedPlayedAt])
+}
+
+model QualificationMatchImport {
+  id                   String             @id @default(uuid()) @db.Uuid
+  qualificationMatchId String             @db.Uuid
+  importVersion        Int
+  status               ImportStatus
+  rawPayload           Json
+  payloadHash          String             @db.Char(64)
+  rankedFetchedAt      DateTime           @db.Timestamptz(3)
+  initiatedByAdminId   String             @db.Uuid
+  correctionReason     String?            @db.Text
+  errorCode            String?            @db.VarChar(100)
+  errorMessage         String?            @db.Text
+  appliedAt            DateTime?          @db.Timestamptz(3)
+  qualificationMatch   QualificationMatch @relation("QualificationMatchImports", fields: [qualificationMatchId], references: [id], onDelete: Restrict)
+  activeForMatch       QualificationMatch? @relation("ActiveQualificationImport")
+  initiatedBy          AdminUser           @relation(fields: [initiatedByAdminId], references: [id], onDelete: Restrict)
+  results              QualificationResult[]
+
+  @@unique([qualificationMatchId, importVersion])
+  @@index([qualificationMatchId, status])
+}
+
+model QualificationResult {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  qualificationMatchId String                    @db.Uuid
+  registrationId       String                    @db.Uuid
+  importId             String                    @db.Uuid
+  status               QualificationResultStatus
+  placement            Int?
+  rawTimeMs            Int?
+  effectiveTimeMs      Int
+  points               Int
+  lastPhase            String?                   @db.VarChar(100)
+  timeline             Json
+  qualificationMatch   QualificationMatch        @relation(fields: [qualificationMatchId], references: [id], onDelete: Restrict)
+  registration         TournamentRegistration    @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  import               QualificationMatchImport  @relation(fields: [importId], references: [id], onDelete: Restrict)
+
+  @@unique([importId, registrationId])
+  @@index([qualificationMatchId, importId])
+  @@index([registrationId])
+}
+
+model PlayoffBracket {
+  id             String         @id @default(uuid()) @db.Uuid
+  divisionId     String         @unique @db.Uuid
+  size           Int
+  showThirdPlace Boolean        @default(false)
+  isPublished    Boolean        @default(false)
+  version        Int            @default(1)
+  division       Division       @relation(fields: [divisionId], references: [id], onDelete: Restrict)
+  seeds          PlayoffSeed[]
+  matches        PlayoffMatch[]
+}
+
+model PlayoffSeed {
+  id             String                  @id @default(uuid()) @db.Uuid
+  bracketId      String                  @db.Uuid
+  seedNumber     Int
+  registrationId String?                 @db.Uuid
+  bracket        PlayoffBracket          @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  registration   TournamentRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  @@unique([bracketId, seedNumber])
+  @@unique([bracketId, registrationId])
+}
+
+model PlayoffMatch {
+  id                         String                   @id @default(uuid()) @db.Uuid
+  bracketId                  String                   @db.Uuid
+  kind                       PlayoffMatchKind
+  roundNumber                Int
+  position                   Int
+  participant1RegistrationId String?                  @db.Uuid
+  participant2RegistrationId String?                  @db.Uuid
+  score1                     Int?
+  score2                     Int?
+  winnerRegistrationId       String?                  @db.Uuid
+  status                     PlayoffMatchStatus
+  version                    Int                      @default(1)
+  bracket                    PlayoffBracket           @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  participant1               TournamentRegistration? @relation("PlayoffParticipant1", fields: [participant1RegistrationId], references: [id], onDelete: SetNull)
+  participant2               TournamentRegistration? @relation("PlayoffParticipant2", fields: [participant2RegistrationId], references: [id], onDelete: SetNull)
+  winner                     TournamentRegistration? @relation("PlayoffWinner", fields: [winnerRegistrationId], references: [id], onDelete: SetNull)
+
+  @@unique([bracketId, kind, roundNumber, position])
+  @@index([bracketId, roundNumber])
+}
+
+model AuditLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  adminUserId String    @db.Uuid
+  action      String    @db.VarChar(120)
+  entityType  String    @db.VarChar(120)
+  entityId    String    @db.VarChar(140)
+  before      Json?
+  after       Json?
+  reason      String?   @db.Text
+  requestId   String    @db.VarChar(100)
+  ipHash      String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([requestId])
+}

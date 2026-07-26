@@ -1,0 +1,11 @@
+---
+import { TournamentPage } from "@/features/tournaments/TournamentPage"
+import MainLayout from "@/layouts/MainLayout.astro"
+---
+
+<MainLayout
+  title="Турниры — MCSR Сабинск"
+  description="Квалификация, лидерборды и плей-офф турниров MCSR Сабинск."
+>
+  <TournamentPage client:load />
+</MainLayout>

@@ -1,0 +1,35 @@
+---
+import "@/styles/global.css"
+
+interface Props {
+  title: string
+  description: string
+}
+
+const { title, description } = Astro.props
+---
+
+<!doctype html>
+<html lang="ru" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#101619" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="MCSR Сабинск — главная">
+        <span class="brand-mark">MS</span>
+        <span class="brand-name">MCSR Сабинск</span>
+      </a>
+      <nav aria-label="Основная навигация">
+        <a class="nav-link nav-link-active" href="/">Турниры</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

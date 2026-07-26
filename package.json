@@ -1,0 +1,39 @@
+{
+  "name": "mcsr-sabinsk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm run prepare:dev && pnpm --parallel --stream --filter @mcsr-sabinsk/backend --filter @mcsr-sabinsk/frontend dev",
+    "dev:backend": "pnpm --filter @mcsr-sabinsk/backend dev",
+    "dev:frontend": "pnpm --filter @mcsr-sabinsk/frontend dev",
+    "prepare:dev": "pnpm --filter @mcsr-sabinsk/shared build && pnpm --filter @mcsr-sabinsk/backend prisma:generate",
+    "build": "pnpm --filter @mcsr-sabinsk/shared build && pnpm --filter @mcsr-sabinsk/backend build && pnpm --filter @mcsr-sabinsk/frontend build",
+    "typecheck": "pnpm --filter @mcsr-sabinsk/shared typecheck && pnpm --filter @mcsr-sabinsk/shared build && pnpm --filter @mcsr-sabinsk/backend typecheck && pnpm --filter @mcsr-sabinsk/frontend typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @mcsr-sabinsk/backend prisma:generate",
+    "db:migrate": "pnpm --filter @mcsr-sabinsk/backend prisma:migrate",
+    "db:seed": "pnpm --filter @mcsr-sabinsk/backend prisma:seed",
+    "db:studio": "pnpm --filter @mcsr-sabinsk/backend prisma:studio",
+    "infra:up": "docker-compose up -d postgres minio",
+    "infra:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-astro": "^0.14.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4"
+  }
+}

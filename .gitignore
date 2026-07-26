@@ -10,6 +10,8 @@ node_modules/
 dist/
 .astro/
 coverage/
+*.tsbuildinfo
+/apps/backend/src/generated/prisma/
 
 # Local environment and secrets
 .env
