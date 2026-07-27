@@ -1,11 +1,11 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common"
 import type {
   ParticipantMatchResult,
-  QualificationMatchResult,
   TimelineSegment,
 } from "@mcsr-sabinsk/shared"
 
 import { PrismaService } from "../prisma/prisma.service.js"
+import { sortQualificationMatchResults } from "./qualification-presentation.js"
 
 function parseTimeline(value: unknown): TimelineSegment[] {
   if (!Array.isArray(value)) return []
@@ -42,6 +42,9 @@ export class QualificationService {
     const match = await this.prisma.qualificationMatch.findUnique({
       where: { id: matchId },
       include: {
+        division: {
+          select: { timeLimitMs: true },
+        },
         activeImport: {
           include: {
             results: {
@@ -59,8 +62,8 @@ export class QualificationService {
       throw new NotFoundException("Результаты матча не найдены.")
     }
 
-    const results: QualificationMatchResult[] = match.activeImport.results
-      .map((result) => ({
+    const results = sortQualificationMatchResults(
+      match.activeImport.results.map((result) => ({
         registrationId: result.registrationId,
         participantUuid: result.registration.participant.rankedUuid,
         nickname: result.registration.nicknameSnapshot,
@@ -68,20 +71,18 @@ export class QualificationService {
         status: result.status,
         placement: result.placement,
         timeMs: result.rawTimeMs,
+        effectiveTimeMs: result.effectiveTimeMs,
         lastPhase: result.lastPhase,
         timeline: parseTimeline(result.timeline),
       }))
-      .sort((left, right) => {
-        const leftPlacement = left.placement ?? Number.POSITIVE_INFINITY
-        const rightPlacement = right.placement ?? Number.POSITIVE_INFINITY
-        return leftPlacement - rightPlacement
-      })
+    )
 
     return {
       data: {
         id: match.id,
         matchNumber: match.matchNumber,
         rankedMatchId: match.rankedMatchId,
+        timeLimitMs: match.division.timeLimitMs,
         results,
       },
     }

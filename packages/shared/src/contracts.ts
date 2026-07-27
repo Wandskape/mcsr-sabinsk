@@ -204,6 +204,7 @@ export interface QualificationMatchResult {
   status: QualificationResultStatus
   placement: number | null
   timeMs: number | null
+  effectiveTimeMs: number
   lastPhase: string | null
   timeline: TimelineSegment[]
 }
@@ -212,6 +213,7 @@ export interface QualificationMatchDetails {
   id: string
   matchNumber: number
   rankedMatchId: string
+  timeLimitMs: number
   results: QualificationMatchResult[]
 }
 

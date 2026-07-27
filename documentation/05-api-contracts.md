@@ -193,6 +193,7 @@ Response element:
     "id": "uuid",
     "matchNumber": 1,
     "rankedMatchId": "123456",
+    "timeLimitMs": 900000,
     "results": [
       {
         "registrationId": "uuid",
@@ -202,7 +203,8 @@ Response element:
         "status": "COMPLETED",
         "placement": 1,
         "timeMs": 514000,
-        "lastPhase": "Finished",
+        "effectiveTimeMs": 514000,
+        "lastPhase": "FINISHED",
         "timeline": [
           {
             "phase": "OVERWORLD",

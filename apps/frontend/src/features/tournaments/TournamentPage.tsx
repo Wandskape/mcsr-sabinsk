@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type {
   DivisionType,
+  ParticipantMatchResult,
   PublicTournament,
+  QualificationMatchResult,
   QualificationMatchSummary,
   Standing,
   TournamentStatus,
@@ -12,17 +14,15 @@ import {
   ChevronRight,
   Crown,
   ExternalLink,
+  ListOrdered,
+  Swords,
   Trophy,
   X,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { cn } from "@/lib/cn"
-import {
-  formatDuration,
-  formatPlacement,
-  formatTournamentPeriod,
-} from "@/lib/format"
+import { formatDuration, formatTournamentPeriod } from "@/lib/format"
 
 import {
   useBackendHealth,
@@ -33,6 +33,14 @@ import {
   useStandings,
   useTournaments,
 } from "./queries"
+import {
+  formatRaceTime,
+  matchResultStatus,
+  matchResultTime,
+  participantResultLabel,
+  PHASE_PRESENTATION,
+  phaseLabel,
+} from "./qualification-presentation"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,11 +59,32 @@ function readSearchParameter(name: string) {
   return new URL(window.location.href).searchParams.get(name)
 }
 
-function updateUrl(slug: string, division: DivisionType) {
+function readSelection(): Selection {
+  const value = readSearchParameter("details")
+  if (!value) return null
+  const separator = value.indexOf(":")
+  if (separator < 1) return null
+  const type = value.slice(0, separator)
+  const id = value.slice(separator + 1)
+  if (!id || (type !== "participant" && type !== "match")) return null
+  return { type, id }
+}
+
+function updateUrl(
+  slug: string,
+  division: DivisionType,
+  selection: Selection,
+  replace = false
+) {
   const url = new URL(window.location.href)
   url.searchParams.set("tournament", slug)
   url.searchParams.set("division", division)
-  window.history.pushState({}, "", url)
+  if (selection) {
+    url.searchParams.set("details", `${selection.type}:${selection.id}`)
+  } else {
+    url.searchParams.delete("details")
+  }
+  window.history[replace ? "replaceState" : "pushState"]({}, "", url)
 }
 
 function TournamentContent() {
@@ -71,7 +100,10 @@ function TournamentContent() {
   const [selectedDivision, setSelectedDivision] = useState<DivisionType | null>(
     () => readSearchParameter("division") as DivisionType | null
   )
-  const [selection, setSelection] = useState<Selection>(null)
+  const [selection, setSelection] = useState<Selection>(() => readSelection())
+  const [mobileSection, setMobileSection] = useState<"standings" | "matches">(
+    "standings"
+  )
   const tournaments = tournamentsQuery.data ?? []
 
   const tournament = useMemo(() => {
@@ -102,7 +134,7 @@ function TournamentContent() {
     if (selectedDivision !== division.type) {
       setSelectedDivision(division.type)
     }
-    updateUrl(tournament.slug, division.type)
+    updateUrl(tournament.slug, division.type, selection, true)
   }, [division, selectedDivision, selectedSlug, tournament])
 
   useEffect(() => {
@@ -111,11 +143,25 @@ function TournamentContent() {
       setSelectedDivision(
         readSearchParameter("division") as DivisionType | null
       )
-      setSelection(null)
+      setSelection(readSelection())
     }
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
   }, [])
+
+  useEffect(() => {
+    if (!selection) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelection(null)
+        if (tournament && division) {
+          updateUrl(tournament.slug, division.type, null)
+        }
+      }
+    }
+    window.addEventListener("keydown", closeOnEscape)
+    return () => window.removeEventListener("keydown", closeOnEscape)
+  }, [division, selection, tournament])
 
   const standings = useStandings(
     tournament?.slug ?? null,
@@ -154,13 +200,20 @@ function TournamentContent() {
     setSelectedSlug(nextTournament.slug)
     setSelectedDivision(nextDivision.type)
     setSelection(null)
-    updateUrl(nextTournament.slug, nextDivision.type)
+    setMobileSection("standings")
+    updateUrl(nextTournament.slug, nextDivision.type, null)
   }
 
   const selectDivision = (type: DivisionType) => {
     setSelectedDivision(type)
     setSelection(null)
-    updateUrl(tournament.slug, type)
+    setMobileSection("standings")
+    updateUrl(tournament.slug, type, null)
+  }
+
+  const selectDetails = (nextSelection: Selection) => {
+    setSelection(nextSelection)
+    updateUrl(tournament.slug, division.type, nextSelection)
   }
 
   return (
@@ -224,43 +277,93 @@ function TournamentContent() {
         ))}
       </nav>
 
+      <div
+        className="competition-mobile-tabs"
+        role="tablist"
+        aria-label="Раздел квалификации"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileSection === "standings"}
+          className={mobileSection === "standings" ? "active" : ""}
+          onClick={() => setMobileSection("standings")}
+        >
+          <ListOrdered size={16} aria-hidden="true" />
+          Лидерборд
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileSection === "matches"}
+          className={mobileSection === "matches" ? "active" : ""}
+          onClick={() => setMobileSection("matches")}
+        >
+          <Swords size={16} aria-hidden="true" />
+          Матчи
+        </button>
+      </div>
+
       <section className="competition-grid">
-        <div className="competition-column standings-column">
+        <div
+          className={cn(
+            "competition-column standings-column",
+            mobileSection === "standings" && "mobile-pane-active"
+          )}
+        >
           <SectionTitle>Лидерборд</SectionTitle>
           <StandingsTable
             standings={standings.data?.standings}
             loading={standings.isLoading}
+            error={standings.isError}
+            showRanks={tournament.status !== "UPCOMING"}
             selection={selection}
-            onSelect={(id) =>
-              setSelection((current) =>
-                current?.type === "participant" && current.id === id
+            onSelect={(id) => {
+              const next =
+                selection?.type === "participant" && selection.id === id
                   ? null
-                  : { type: "participant", id }
-              )
-            }
+                  : ({ type: "participant", id } satisfies Selection)
+              selectDetails(next)
+            }}
           />
         </div>
 
-        <div className="competition-column matches-column">
+        <div
+          className={cn(
+            "competition-column matches-column",
+            mobileSection === "matches" && "mobile-pane-active"
+          )}
+        >
           <SectionTitle>Матчи</SectionTitle>
           <MatchesList
             matches={matches.data}
             loading={matches.isLoading}
+            error={matches.isError}
+            upcoming={tournament.status === "UPCOMING"}
             selection={selection}
-            onSelect={(id) =>
-              setSelection((current) =>
-                current?.type === "match" && current.id === id
+            onSelect={(id) => {
+              const next =
+                selection?.type === "match" && selection.id === id
                   ? null
-                  : { type: "match", id }
-              )
-            }
+                  : ({ type: "match", id } satisfies Selection)
+              selectDetails(next)
+            }}
           />
         </div>
 
         <DetailsPanel
           selection={selection}
-          onClose={() => setSelection(null)}
+          onClose={() => selectDetails(null)}
+          onSelectMatch={(id) => selectDetails({ type: "match", id })}
         />
+        {selection && (
+          <button
+            type="button"
+            className="details-backdrop"
+            aria-label="Закрыть подробности"
+            onClick={() => selectDetails(null)}
+          />
+        )}
       </section>
     </div>
   )
@@ -337,15 +440,22 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function StandingsTable({
   standings,
   loading,
+  error,
+  showRanks,
   selection,
   onSelect,
 }: {
   standings: Standing[] | undefined
   loading: boolean
+  error: boolean
+  showRanks: boolean
   selection: Selection
   onSelect: (id: string) => void
 }) {
   if (loading) return <ListSkeleton rows={8} />
+  if (error) {
+    return <EmptyState>Не удалось загрузить лидерборд.</EmptyState>
+  }
   if (!standings?.length) {
     return <EmptyState>Участники ещё не добавлены.</EmptyState>
   }
@@ -356,6 +466,11 @@ function StandingsTable({
         <button
           type="button"
           key={standing.registrationId}
+          aria-pressed={
+            selection?.type === "participant" &&
+            selection.id === standing.registrationId
+          }
+          aria-controls="qualification-details"
           onClick={() => onSelect(standing.registrationId)}
           className={cn(
             "standing-row",
@@ -364,9 +479,11 @@ function StandingsTable({
               "row-selected"
           )}
         >
-          <span className="rank">{standing.rank}</span>
+          <span className="rank">{showRanks ? standing.rank : "—"}</span>
           <span className="player-name">{standing.nickname}</span>
-          <span className="points">{standing.points} очк.</span>
+          <span className="points">
+            {showRanks ? `${standing.points} очк.` : "Ожидает старта"}
+          </span>
         </button>
       ))}
     </div>
@@ -376,17 +493,30 @@ function StandingsTable({
 function MatchesList({
   matches,
   loading,
+  error,
+  upcoming,
   selection,
   onSelect,
 }: {
   matches: QualificationMatchSummary[] | undefined
   loading: boolean
+  error: boolean
+  upcoming: boolean
   selection: Selection
   onSelect: (id: string) => void
 }) {
   if (loading) return <ListSkeleton rows={5} />
+  if (error) {
+    return <EmptyState>Не удалось загрузить список матчей.</EmptyState>
+  }
   if (!matches?.length) {
-    return <EmptyState>Завершённых матчей пока нет.</EmptyState>
+    return (
+      <EmptyState>
+        {upcoming
+          ? "Квалификация ещё не началась."
+          : "Завершённых матчей пока нет."}
+      </EmptyState>
+    )
   }
 
   return (
@@ -395,6 +525,10 @@ function MatchesList({
         <button
           type="button"
           key={match.id}
+          aria-pressed={
+            selection?.type === "match" && selection.id === match.id
+          }
+          aria-controls="qualification-details"
           onClick={() => onSelect(match.id)}
           className={cn(
             "match-row",
@@ -417,13 +551,17 @@ function MatchesList({
 function DetailsPanel({
   selection,
   onClose,
+  onSelectMatch,
 }: {
   selection: Selection
   onClose: () => void
+  onSelectMatch: (id: string) => void
 }) {
   return (
     <aside
+      id="qualification-details"
       className={cn("details-panel", selection && "details-panel-open")}
+      aria-label="Подробности квалификации"
       aria-live="polite"
     >
       {selection && (
@@ -442,7 +580,10 @@ function DetailsPanel({
           <p>Выберите участника или завершённый матч.</p>
         </div>
       ) : selection.type === "participant" ? (
-        <ParticipantDetails registrationId={selection.id} />
+        <ParticipantDetails
+          registrationId={selection.id}
+          onSelectMatch={onSelectMatch}
+        />
       ) : (
         <MatchDetails matchId={selection.id} />
       )}
@@ -450,11 +591,17 @@ function DetailsPanel({
   )
 }
 
-function ParticipantDetails({ registrationId }: { registrationId: string }) {
+function ParticipantDetails({
+  registrationId,
+  onSelectMatch,
+}: {
+  registrationId: string
+  onSelectMatch: (id: string) => void
+}) {
   const details = useParticipantDetails(registrationId)
   if (details.isLoading) return <ListSkeleton rows={5} />
-  if (!details.data) {
-    return <EmptyState>Не удалось загрузить участника.</EmptyState>
+  if (details.isError || !details.data) {
+    return <EmptyState>Не удалось загрузить данные участника.</EmptyState>
   }
 
   return (
@@ -462,7 +609,7 @@ function ParticipantDetails({ registrationId }: { registrationId: string }) {
       <div className="details-heading">
         <span>#{details.data.rank}</span>
         <a
-          href={`https://mcsrranked.com/stats/${details.data.nickname}`}
+          href={`https://mcsrranked.com/stats/${details.data.participantUuid}`}
           target="_blank"
           rel="noreferrer"
         >
@@ -470,28 +617,43 @@ function ParticipantDetails({ registrationId }: { registrationId: string }) {
           <ExternalLink aria-hidden="true" />
         </a>
       </div>
-      <p>
-        <strong>{details.data.points}</strong> очков ·{" "}
-        {details.data.matches.length} матчей · среднее{" "}
-        {formatDuration(details.data.averageTimeMs)}
-      </p>
+      <div className="participant-summary">
+        <p>
+          <strong>{details.data.points}</strong> очков ·{" "}
+          {details.data.matches.length} матчей
+        </p>
+        <span>Среднее время {formatDuration(details.data.averageTimeMs)}</span>
+      </div>
       <div className="placement-list">
         {details.data.matches.map((match) => (
-          <div key={match.matchId}>
+          <button
+            type="button"
+            key={match.matchId}
+            onClick={() => onSelectMatch(match.matchId)}
+          >
             <span>Матч {match.matchNumber}</span>
-            <strong>{formatPlacement(match.placement)}</strong>
+            <strong data-placement={placementTone(match)}>
+              {participantResultLabel(match.status, match.placement)}
+            </strong>
             <span>+{match.points} очк.</span>
-          </div>
+          </button>
         ))}
       </div>
     </div>
   )
 }
 
+function placementTone(match: ParticipantMatchResult) {
+  if (match.status !== "COMPLETED") return match.status.toLowerCase()
+  if (match.placement === 1) return "gold"
+  if (match.placement === 2 || match.placement === 3) return "podium"
+  return "regular"
+}
+
 function MatchDetails({ matchId }: { matchId: string }) {
   const details = useMatchDetails(matchId)
   if (details.isLoading) return <ListSkeleton rows={5} />
-  if (!details.data) {
+  if (details.isError || !details.data) {
     return <EmptyState>Не удалось загрузить матч.</EmptyState>
   }
 
@@ -499,7 +661,7 @@ function MatchDetails({ matchId }: { matchId: string }) {
     <div className="match-details">
       <div className="details-heading">
         <span>Матч {details.data.matchNumber}</span>
-        <strong>#{details.data.rankedMatchId}</strong>
+        <strong>Ranked #{details.data.rankedMatchId}</strong>
       </div>
       <div className="result-list">
         {details.data.results.map((result) => (
@@ -511,16 +673,85 @@ function MatchDetails({ matchId }: { matchId: string }) {
               alt=""
               loading="lazy"
             />
-            <div>
-              <strong>{result.nickname}</strong>
-              <span>{result.lastPhase ?? result.status}</span>
+            <div className="result-content">
+              <div className="result-meta">
+                <strong>{result.nickname}</strong>
+                <span>{formatRaceTime(matchResultTime(result))}</span>
+                <em>{matchResultStatus(result)}</em>
+              </div>
+              <TimelineBar
+                result={result}
+                timeLimitMs={details.data.timeLimitMs}
+              />
             </div>
-            <span>
-              {result.placement ?? "—"} · {formatDuration(result.timeMs)}
-            </span>
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function TimelineBar({
+  result,
+  timeLimitMs,
+}: {
+  result: QualificationMatchResult
+  timeLimitMs: number
+}) {
+  if (result.status === "MISSED" || result.timeline.length === 0) {
+    return (
+      <div className="timeline-empty">
+        <span>Нет timeline</span>
+      </div>
+    )
+  }
+
+  const totalTime = Math.max(
+    result.status === "COMPLETED"
+      ? (result.timeMs ?? result.effectiveTimeMs)
+      : matchResultTime(result) || result.effectiveTimeMs,
+    1
+  )
+  const scaleTime =
+    result.status === "DNF" ? Math.max(timeLimitMs, totalTime) : totalTime
+
+  return (
+    <div
+      className="timeline-bar"
+      aria-label={`Timeline: ${phaseLabel(result.lastPhase)}`}
+    >
+      {result.timeline.map((segment, index) => {
+        const duration = Math.max(segment.endMs - segment.startMs, 1)
+        const phase = PHASE_PRESENTATION[segment.phase] ?? {
+          label: segment.phase,
+          color: "#7a8589",
+        }
+        const tooltip = `${phase.label}: ${formatRaceTime(
+          duration
+        )}, начало ${formatRaceTime(segment.startMs)}`
+        return (
+          <span
+            key={`${segment.phase}-${segment.startMs}-${index}`}
+            className="timeline-segment"
+            style={{
+              backgroundColor: phase.color,
+              width: `${(duration / scaleTime) * 100}%`,
+            }}
+            title={tooltip}
+            aria-label={tooltip}
+          />
+        )
+      })}
+      {result.status === "DNF" && totalTime < timeLimitMs && (
+        <span
+          className="timeline-remaining"
+          style={{
+            width: `${((timeLimitMs - totalTime) / timeLimitMs) * 100}%`,
+          }}
+          title={`До лимита: ${formatRaceTime(timeLimitMs - totalTime)}`}
+          aria-hidden="true"
+        />
+      )}
     </div>
   )
 }
