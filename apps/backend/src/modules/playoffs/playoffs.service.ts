@@ -27,7 +27,10 @@ import type { UpdatePlayoffSeedsDto } from "./dto/update-playoff-seeds.dto.js"
 import type { UpdatePlayoffDto } from "./dto/update-playoff.dto.js"
 import {
   createMatchSlots,
+  matchLoser,
+  nextMainMatchTarget,
   playoffRoundName,
+  rankPlayoffEntrants,
   validateMatchState,
 } from "./playoff-domain.js"
 
@@ -129,7 +132,11 @@ export class PlayoffsService {
       include: {
         tournament: true,
         playoffBracket: { select: { id: true } },
-        _count: { select: { registrations: true } },
+        registrations: {
+          include: {
+            participant: { select: { rankedUuid: true } },
+          },
+        },
       },
     })
     if (!division) {
@@ -154,11 +161,17 @@ export class PlayoffsService {
     if (division.playoffBracket) {
       throw new ConflictException("Для дивизиона уже создана сетка.")
     }
-    if (division._count.registrations < input.size) {
+    if (division.registrations.length < input.size) {
       throw new BadRequestException(
         `Для сетки на ${input.size} игроков в дивизионе недостаточно участников.`
       )
     }
+    const entrants = rankPlayoffEntrants(
+      division.registrations.map((registration) => ({
+        ...registration,
+        tieBreaker: registration.participant.rankedUuid,
+      }))
+    ).slice(0, input.size)
 
     const created = await this.prisma.$transaction(async (transaction) => {
       const divisionUpdate = await transaction.division.updateMany({
@@ -177,8 +190,9 @@ export class PlayoffsService {
           size: input.size,
           showThirdPlace: input.showThirdPlace,
           seeds: {
-            create: Array.from({ length: input.size }, (_, index) => ({
+            create: entrants.map((registration, index) => ({
               seedNumber: index + 1,
+              registrationId: registration.id,
             })),
           },
           matches: {
@@ -291,12 +305,15 @@ export class PlayoffsService {
         `Передайте ровно ${current.size} уникальных позиций посева.`
       )
     }
-    if (new Set(registrations).size !== registrations.length) {
+    if (
+      registrations.length !== current.size ||
+      new Set(registrations).size !== registrations.length
+    ) {
       throw new BadRequestException(
-        "Один участник не может занимать две позиции посева."
+        "Все позиции посева должны содержать уникальных участников."
       )
     }
-    await this.assertRegistrations(current.divisionId, registrations)
+    await this.assertBracketEntrants(id, registrations)
 
     const updated = await this.prisma.$transaction(async (transaction) => {
       for (const seed of input.seeds) {
@@ -373,6 +390,16 @@ export class PlayoffsService {
       winnerRegistrationId: input.winnerRegistrationId ?? null,
       status: input.status,
     }
+    if (match.roundNumber > 1 || match.kind === PlayoffMatchKind.THIRD_PLACE) {
+      if (
+        state.participant1RegistrationId !== match.participant1RegistrationId ||
+        state.participant2RegistrationId !== match.participant2RegistrationId
+      ) {
+        throw new BadRequestException(
+          "Участники следующих раундов назначаются автоматически по результатам предыдущих матчей."
+        )
+      }
+    }
     const validationError = validateMatchState(state)
     if (validationError) {
       throw new BadRequestException(validationError)
@@ -381,7 +408,7 @@ export class PlayoffsService {
       state.participant1RegistrationId,
       state.participant2RegistrationId,
     ].filter((value): value is string => value !== null)
-    await this.assertRegistrations(match.bracket.divisionId, registrations)
+    await this.assertBracketEntrants(match.bracketId, registrations)
     await this.assertNoRoundDuplicates(match, registrations)
 
     const updated = await this.prisma.$transaction(async (transaction) => {
@@ -397,6 +424,18 @@ export class PlayoffsService {
           "Матч уже изменён в другой вкладке. Обновите страницу."
         )
       }
+      await this.propagateResult(
+        transaction,
+        {
+          id: match.id,
+          bracketId: match.bracketId,
+          kind: match.kind,
+          roundNumber: match.roundNumber,
+          position: match.position,
+          ...state,
+        },
+        match.bracket.size
+      )
       await transaction.playoffBracket.update({
         where: { id: match.bracketId },
         data: { version: { increment: 1 } },
@@ -444,16 +483,23 @@ export class PlayoffsService {
         (match) =>
           match.kind === PlayoffMatchKind.MAIN && match.roundNumber === 1
       )
+      const entrantIds = new Set(
+        current.seeds
+          .map((seed) => seed.registrationId)
+          .filter((value): value is string => value !== null)
+      )
       if (
         firstRound.length !== current.size / 2 ||
         firstRound.some(
           (match) =>
             !match.participant1RegistrationId ||
-            !match.participant2RegistrationId
+            !match.participant2RegistrationId ||
+            !entrantIds.has(match.participant1RegistrationId) ||
+            !entrantIds.has(match.participant2RegistrationId)
         )
       ) {
         throw new BadRequestException(
-          "Перед публикацией заполните всех участников первого раунда."
+          "Перед публикацией заполните первый раунд только участниками, прошедшими в top-N."
         )
       }
     }
@@ -535,19 +581,154 @@ export class PlayoffsService {
     }
   }
 
-  private async assertRegistrations(
-    divisionId: string,
+  private async assertBracketEntrants(
+    bracketId: string,
     registrationIds: string[]
   ) {
     if (registrationIds.length === 0) return
-    const count = await this.prisma.tournamentRegistration.count({
-      where: { id: { in: registrationIds }, divisionId },
+    const count = await this.prisma.playoffSeed.count({
+      where: {
+        bracketId,
+        registrationId: { in: registrationIds },
+      },
     })
     if (count !== new Set(registrationIds).size) {
       throw new BadRequestException(
-        "Все выбранные участники должны быть зарегистрированы в этом дивизионе."
+        "В матч можно выбрать только участников, прошедших в плей-офф."
       )
     }
+  }
+
+  private async propagateResult(
+    transaction: Prisma.TransactionClient,
+    source: {
+      id: string
+      bracketId: string
+      kind: PlayoffMatchKind
+      roundNumber: number
+      position: number
+      participant1RegistrationId: string | null
+      participant2RegistrationId: string | null
+      score1: number | null
+      score2: number | null
+      winnerRegistrationId: string | null
+      status: PlayoffMatchStatus
+    },
+    bracketSize: number
+  ): Promise<void> {
+    if (source.kind !== PlayoffMatchKind.MAIN) return
+
+    const roundCount = Math.log2(bracketSize)
+    const nextTarget = nextMainMatchTarget(
+      source.roundNumber,
+      source.position,
+      roundCount
+    )
+    if (nextTarget) {
+      await this.setPropagatedSlot(
+        transaction,
+        {
+          bracketId: source.bracketId,
+          kind: PlayoffMatchKind.MAIN,
+          roundNumber: nextTarget.roundNumber,
+          position: nextTarget.position,
+          slot: nextTarget.slot,
+          registrationId:
+            source.status === PlayoffMatchStatus.COMPLETED
+              ? source.winnerRegistrationId
+              : null,
+        },
+        bracketSize
+      )
+    }
+
+    if (source.roundNumber === roundCount - 1) {
+      await this.setPropagatedSlot(
+        transaction,
+        {
+          bracketId: source.bracketId,
+          kind: PlayoffMatchKind.THIRD_PLACE,
+          roundNumber: roundCount,
+          position: 1,
+          slot: source.position % 2 === 1 ? 1 : 2,
+          registrationId: matchLoser(source),
+        },
+        bracketSize
+      )
+    }
+  }
+
+  private async setPropagatedSlot(
+    transaction: Prisma.TransactionClient,
+    target: {
+      bracketId: string
+      kind: PlayoffMatchKind
+      roundNumber: number
+      position: number
+      slot: 1 | 2
+      registrationId: string | null
+    },
+    bracketSize: number
+  ) {
+    const match = await transaction.playoffMatch.findUniqueOrThrow({
+      where: {
+        bracketId_kind_roundNumber_position: {
+          bracketId: target.bracketId,
+          kind: target.kind,
+          roundNumber: target.roundNumber,
+          position: target.position,
+        },
+      },
+    })
+    const currentRegistrationId =
+      target.slot === 1
+        ? match.participant1RegistrationId
+        : match.participant2RegistrationId
+    if (currentRegistrationId === target.registrationId) return
+
+    const participant1RegistrationId =
+      target.slot === 1
+        ? target.registrationId
+        : match.participant1RegistrationId
+    const participant2RegistrationId =
+      target.slot === 2
+        ? target.registrationId
+        : match.participant2RegistrationId
+    const status =
+      participant1RegistrationId && participant2RegistrationId
+        ? PlayoffMatchStatus.READY
+        : PlayoffMatchStatus.EMPTY
+
+    await transaction.playoffMatch.update({
+      where: { id: match.id },
+      data: {
+        participant1RegistrationId,
+        participant2RegistrationId,
+        score1: null,
+        score2: null,
+        winnerRegistrationId: null,
+        status,
+        version: { increment: 1 },
+      },
+    })
+
+    await this.propagateResult(
+      transaction,
+      {
+        id: match.id,
+        bracketId: match.bracketId,
+        kind: match.kind,
+        roundNumber: match.roundNumber,
+        position: match.position,
+        participant1RegistrationId,
+        participant2RegistrationId,
+        score1: null,
+        score2: null,
+        winnerRegistrationId: null,
+        status,
+      },
+      bracketSize
+    )
   }
 
   private async assertNoRoundDuplicates(
@@ -639,6 +820,24 @@ export class PlayoffsService {
 
   private mapAdmin(bracket: BracketRecord): AdminPlayoff {
     const publicBracket = this.mapPublic(bracket)
+    const registrationById = new Map(
+      bracket.division.registrations.map((registration) => [
+        registration.id,
+        registration,
+      ])
+    )
+    const entrants = bracket.seeds
+      .map((seed) =>
+        seed.registrationId
+          ? registrationById.get(seed.registrationId)
+          : undefined
+      )
+      .filter(
+        (
+          registration
+        ): registration is BracketRecord["division"]["registrations"][number] =>
+          registration !== undefined
+      )
     return {
       ...publicBracket,
       id: bracket.id,
@@ -646,7 +845,7 @@ export class PlayoffsService {
       divisionDisplayName: bracket.division.displayName,
       isPublished: bracket.isPublished,
       version: bracket.version,
-      registrations: bracket.division.registrations.map((registration) => ({
+      registrations: entrants.map((registration) => ({
         registrationId: registration.id,
         nickname: registration.nicknameSnapshot,
         qualificationPoints: registration.qualificationPoints,
@@ -662,6 +861,11 @@ export class PlayoffsService {
 
   private warnings(bracket: BracketRecord) {
     const warnings: string[] = []
+    const entrantIds = new Set(
+      bracket.seeds
+        .map((seed) => seed.registrationId)
+        .filter((value): value is string => value !== null)
+    )
     const nickname = new Map(
       bracket.division.registrations.map((registration) => [
         registration.id,
@@ -678,6 +882,21 @@ export class PlayoffsService {
       )
     ) {
       warnings.push("Не все участники первого раунда назначены.")
+    }
+    if (
+      firstRound.some((match) =>
+        [
+          match.participant1RegistrationId,
+          match.participant2RegistrationId,
+        ].some(
+          (registrationId) =>
+            registrationId !== null && !entrantIds.has(registrationId)
+        )
+      )
+    ) {
+      warnings.push(
+        "В первом раунде есть участник вне top-N квалификации. Замените его перед повторной публикацией."
+      )
     }
 
     const roundCount = Math.log2(bracket.size)

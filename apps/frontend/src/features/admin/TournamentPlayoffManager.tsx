@@ -469,6 +469,8 @@ function PlayoffMatchEditor({
     match.score2 === null ? "" : String(match.score2)
   )
   const [winner, setWinner] = useState(match.winnerRegistrationId ?? "")
+  const participantsAutomatic =
+    match.roundNumber > 1 || match.kind === "THIRD_PLACE"
   const selectedParticipants = useMemo(
     () =>
       bracket.registrations.filter(
@@ -478,79 +480,124 @@ function PlayoffMatchEditor({
       ),
     [bracket.registrations, participant1, participant2]
   )
+  const entrantIds = useMemo(
+    () =>
+      new Set(
+        bracket.registrations.map((registration) => registration.registrationId)
+      ),
+    [bracket.registrations]
+  )
 
   return (
     <article className="admin-playoff-match" data-status={match.status}>
       <span>Матч {match.position}</span>
-      <div className="admin-match-player-row">
-        <select
-          value={participant1}
-          disabled={disabled}
-          aria-label="Первый участник"
-          onChange={(event) => {
-            setParticipant1(event.currentTarget.value)
-            if (
-              winner &&
-              winner !== event.currentTarget.value &&
-              winner !== participant2
-            ) {
-              setWinner("")
-            }
-          }}
-        >
-          <option value="">Ожидается</option>
-          {bracket.registrations.map((registration) => (
-            <option
-              key={registration.registrationId}
-              value={registration.registrationId}
-            >
-              {registration.nickname} · {registration.qualificationPoints} очк.
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          min={0}
-          value={score1}
-          disabled={disabled}
-          aria-label="Счёт первого участника"
-          onChange={(event) => setScore1(event.currentTarget.value)}
-        />
+      <div className="admin-match-columns" aria-hidden="true">
+        <span>
+          {participantsAutomatic ? "Участник из прошлого раунда" : "Игрок"}
+        </span>
+        <span>Счёт</span>
       </div>
       <div className="admin-match-player-row">
-        <select
-          value={participant2}
-          disabled={disabled}
-          aria-label="Второй участник"
-          onChange={(event) => {
-            setParticipant2(event.currentTarget.value)
-            if (
-              winner &&
-              winner !== participant1 &&
-              winner !== event.currentTarget.value
-            ) {
-              setWinner("")
-            }
-          }}
-        >
-          <option value="">Ожидается</option>
-          {bracket.registrations.map((registration) => (
-            <option
-              key={registration.registrationId}
-              value={registration.registrationId}
-            >
-              {registration.nickname} · {registration.qualificationPoints} очк.
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          min={0}
-          value={score2}
-          disabled={disabled}
-          aria-label="Счёт второго участника"
-          onChange={(event) => setScore2(event.currentTarget.value)}
-        />
+        {participantsAutomatic ? (
+          <div className="admin-auto-player">
+            {match.participant1?.nickname ?? "Ожидается результат"}
+          </div>
+        ) : (
+          <select
+            value={participant1}
+            disabled={disabled}
+            aria-label="Первый участник"
+            onChange={(event) => {
+              setParticipant1(event.currentTarget.value)
+              if (
+                winner &&
+                winner !== event.currentTarget.value &&
+                winner !== participant2
+              ) {
+                setWinner("")
+              }
+            }}
+          >
+            <option value="">Ожидается</option>
+            {participant1 && !entrantIds.has(participant1) && (
+              <option value={participant1} disabled>
+                {match.participant1?.nickname ?? "Участник"} — вне top-N
+              </option>
+            )}
+            {bracket.registrations.map((registration) => (
+              <option
+                key={registration.registrationId}
+                value={registration.registrationId}
+              >
+                {registration.nickname} · {registration.qualificationPoints}{" "}
+                очк.
+              </option>
+            ))}
+          </select>
+        )}
+        <label className="admin-match-score">
+          <span className="sr-only">Счёт первого участника</span>
+          <input
+            type="number"
+            min={0}
+            placeholder="0"
+            value={score1}
+            disabled={disabled || !participant1}
+            aria-label="Счёт первого участника"
+            onChange={(event) => setScore1(event.currentTarget.value)}
+          />
+        </label>
+      </div>
+      <div className="admin-match-player-row">
+        {participantsAutomatic ? (
+          <div className="admin-auto-player">
+            {match.participant2?.nickname ?? "Ожидается результат"}
+          </div>
+        ) : (
+          <select
+            value={participant2}
+            disabled={disabled}
+            aria-label="Второй участник"
+            onChange={(event) => {
+              setParticipant2(event.currentTarget.value)
+              if (
+                winner &&
+                winner !== participant1 &&
+                winner !== event.currentTarget.value
+              ) {
+                setWinner("")
+              }
+            }}
+          >
+            <option value="">Ожидается</option>
+            {participant2 && !entrantIds.has(participant2) && (
+              <option value={participant2} disabled>
+                {match.participant2?.nickname ?? "Участник"} — вне top-N
+              </option>
+            )}
+            {bracket.registrations.map((registration) => (
+              <option
+                key={registration.registrationId}
+                value={registration.registrationId}
+              >
+                {registration.nickname} · {registration.qualificationPoints}{" "}
+                очк.
+              </option>
+            ))}
+          </select>
+        )}
+        <label className="admin-match-score">
+          <span className="sr-only">Счёт второго участника</span>
+          <input
+            type="number"
+            min={0}
+            placeholder="0"
+            value={score2}
+            disabled={disabled || !participant2}
+            aria-label="Счёт второго участника"
+            onChange={(event) => setScore2(event.currentTarget.value)}
+          />
+        </label>
       </div>
       <label>
         <span>Победитель</span>

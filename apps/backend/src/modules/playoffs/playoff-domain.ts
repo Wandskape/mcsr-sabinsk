@@ -20,6 +20,13 @@ export interface MatchState {
   status: PlayoffMatchStatus
 }
 
+export interface QualificationRankedRegistration {
+  qualificationPoints: number
+  averageTimeMs: number | null
+  nicknameSnapshot: string
+  tieBreaker: string
+}
+
 export function isPlayoffSize(value: number): value is PlayoffSize {
   return value === 4 || value === 8 || value === 16
 }
@@ -57,6 +64,49 @@ export function playoffRoundName(size: number, roundNumber: number) {
   if (remaining === 1) return "Полуфиналы"
   if (remaining === 2) return "Четвертьфиналы"
   return "1/8 финала"
+}
+
+export function rankPlayoffEntrants<T extends QualificationRankedRegistration>(
+  registrations: T[]
+) {
+  return [...registrations].sort((left, right) => {
+    const points = right.qualificationPoints - left.qualificationPoints
+    if (points !== 0) return points
+
+    const leftAverage = left.averageTimeMs ?? Number.POSITIVE_INFINITY
+    const rightAverage = right.averageTimeMs ?? Number.POSITIVE_INFINITY
+    if (leftAverage !== rightAverage) return leftAverage - rightAverage
+
+    const nickname = left.nicknameSnapshot.localeCompare(
+      right.nicknameSnapshot,
+      "ru",
+      { sensitivity: "base" }
+    )
+    if (nickname !== 0) return nickname
+    return left.tieBreaker.localeCompare(right.tieBreaker)
+  })
+}
+
+export function nextMainMatchTarget(
+  roundNumber: number,
+  position: number,
+  roundCount: number
+) {
+  if (roundNumber >= roundCount) return null
+  return {
+    roundNumber: roundNumber + 1,
+    position: Math.ceil(position / 2),
+    slot: position % 2 === 1 ? (1 as const) : (2 as const),
+  }
+}
+
+export function matchLoser(state: MatchState) {
+  if (state.status !== "COMPLETED" || state.winnerRegistrationId === null) {
+    return null
+  }
+  return state.participant1RegistrationId === state.winnerRegistrationId
+    ? state.participant2RegistrationId
+    : state.participant1RegistrationId
 }
 
 export function validateMatchState(state: MatchState): string | null {

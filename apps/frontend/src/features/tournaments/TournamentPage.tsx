@@ -861,41 +861,64 @@ function PlayoffBracketView({
       <div
         className="public-bracket"
         style={{
-          gridTemplateColumns: `repeat(${bracket.rounds.length}, minmax(230px, 1fr))`,
+          gridTemplateColumns: `repeat(${bracket.rounds.length}, 230px)`,
         }}
       >
         {bracket.rounds.map((round) => (
           <section className="public-bracket-round" key={round.roundNumber}>
             <h2>{round.name}</h2>
-            <div className="public-bracket-matches">
+            <div
+              className="public-bracket-matches"
+              style={{
+                gridTemplateRows: `repeat(${bracket.size}, minmax(44px, 1fr))`,
+              }}
+            >
               {round.matches.map((match) => (
-                <PublicPlayoffMatchCard key={match.id} match={match} />
+                <PublicPlayoffMatchCard
+                  key={match.id}
+                  match={match}
+                  gridRow={`${(match.position - 1) * 2 ** round.roundNumber + 2 ** (round.roundNumber - 1)} / span 2`}
+                />
               ))}
-              {round.name === "Финал" &&
-                bracket.showThirdPlace &&
-                bracket.thirdPlaceMatch && (
-                  <div className="public-third-place">
-                    <h3>Матч за третье место</h3>
-                    <PublicPlayoffMatchCard match={bracket.thirdPlaceMatch} />
-                  </div>
-                )}
             </div>
           </section>
         ))}
       </div>
+      {bracket.showThirdPlace && bracket.thirdPlaceMatch && (
+        <div
+          className="public-third-place-row"
+          style={{
+            gridTemplateColumns: `repeat(${bracket.rounds.length}, 230px)`,
+          }}
+        >
+          <aside
+            className="public-third-place-panel"
+            style={{ gridColumn: bracket.rounds.length }}
+          >
+            <h3>Матч за третье место</h3>
+            <PublicPlayoffMatchCard match={bracket.thirdPlaceMatch} />
+          </aside>
+        </div>
+      )}
     </section>
   )
 }
 
 function PublicPlayoffMatchCard({
   match,
+  gridRow,
 }: {
   match: PublicPlayoff["rounds"][number]["matches"][number]
+  gridRow?: string
 }) {
   const participants = [match.participant1, match.participant2]
   const scores = [match.score1, match.score2]
   return (
-    <article className="public-playoff-match" data-status={match.status}>
+    <article
+      className="public-playoff-match"
+      data-status={match.status}
+      style={gridRow ? { gridRow } : undefined}
+    >
       {participants.map((participant, index) => {
         const isWinner =
           participant !== null &&
