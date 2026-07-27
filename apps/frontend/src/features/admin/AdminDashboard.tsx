@@ -28,6 +28,10 @@ const AUDIT_LABELS: Record<string, string> = {
   TOURNAMENT_COVER_SET: "Обложка турнира установлена",
   TOURNAMENT_COVER_REMOVED: "Обложка турнира удалена",
   TOURNAMENT_DELETED: "Черновик турнира удалён",
+  REGISTRATION_ADDED: "Участник добавлен",
+  REGISTRATIONS_BULK_ADDED: "Добавлен список участников",
+  REGISTRATION_MOVED: "Участник перемещён",
+  REGISTRATION_REMOVED: "Участник удалён",
 }
 
 interface DashboardData {

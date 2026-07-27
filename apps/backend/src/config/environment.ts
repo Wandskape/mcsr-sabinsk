@@ -11,6 +11,7 @@ interface Environment {
   S3_BUCKET: string
   S3_ACCESS_KEY: string
   S3_SECRET_KEY: string
+  RANKED_API_BASE_URL: string
 }
 
 function requireString(
@@ -79,5 +80,30 @@ export function validateEnvironment(
     S3_BUCKET: requireString(source, "S3_BUCKET"),
     S3_ACCESS_KEY: requireString(source, "S3_ACCESS_KEY"),
     S3_SECRET_KEY: requireString(source, "S3_SECRET_KEY"),
+    RANKED_API_BASE_URL:
+      typeof source.RANKED_API_BASE_URL === "string" &&
+      source.RANKED_API_BASE_URL.trim() !== ""
+        ? validateRankedApiUrl(source.RANKED_API_BASE_URL, nodeEnvironment)
+        : "https://api.mcsrranked.com",
   }
+}
+
+function validateRankedApiUrl(
+  value: string,
+  nodeEnvironment: Environment["NODE_ENV"]
+) {
+  const url = new URL(value)
+  const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1"
+  if (
+    url.protocol !== "https:" &&
+    !(nodeEnvironment !== "production" && isLocal)
+  ) {
+    throw new Error(
+      "RANKED_API_BASE_URL must use HTTPS (HTTP is allowed only for a local mock)"
+    )
+  }
+  url.pathname = url.pathname.replace(/\/+$/, "")
+  url.search = ""
+  url.hash = ""
+  return url.toString().replace(/\/$/, "")
 }

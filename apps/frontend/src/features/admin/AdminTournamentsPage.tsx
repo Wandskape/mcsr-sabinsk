@@ -28,6 +28,7 @@ import {
 } from "@/lib/api-client"
 
 import { AdminShell } from "./AdminShell"
+import { TournamentRosterManager } from "./TournamentRosterManager"
 
 const TournamentFormSchema = z
   .object({
@@ -696,6 +697,12 @@ export function AdminTournamentsPage() {
                   )}
                 </div>
               </section>
+
+              <TournamentRosterManager
+                session={session}
+                tournament={selected}
+                onTournamentChanged={upsertTournament}
+              />
 
               {selected.status === "DRAFT" &&
                 !selected.coverObjectKey &&

@@ -33,6 +33,11 @@ const adminTournamentInclude = {
       playoffBracket: {
         select: { id: true },
       },
+      qualificationMatches: {
+        where: { activeImportId: { not: null } },
+        select: { id: true },
+        take: 1,
+      },
       _count: {
         select: {
           registrations: true,
@@ -564,6 +569,7 @@ export class AdminTournamentsService {
         version: division.version,
         registrationCount: division._count.registrations,
         qualificationMatchCount: division._count.qualificationMatches,
+        rosterLocked: division.qualificationMatches.length > 0,
       })),
     }
   }

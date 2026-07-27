@@ -330,6 +330,8 @@ Response:
 ### Участники и регистрации
 
 - `POST /admin/ranked/resolve-user`
+- `GET /admin/divisions/:divisionId/registrations`
+- `POST /admin/divisions/:divisionId/registrations/preview`
 - `POST /admin/divisions/:divisionId/registrations`
 - `POST /admin/divisions/:divisionId/registrations/bulk`
 - `PATCH /admin/registrations/:id`
@@ -352,7 +354,35 @@ Bulk:
 }
 ```
 
-Bulk response содержит успешные и ошибочные строки отдельно; запись применяется атомарно только после подтверждения preview.
+Сначала те же `nicknames` отправляются на
+`POST /admin/divisions/:divisionId/registrations/preview` без
+`expectedDivisionVersion`. Preview возвращает для каждой строки статус
+`READY`, `ALREADY_REGISTERED`, `CONFLICT`, `DUPLICATE_INPUT`, `NOT_FOUND` или
+`ERROR`, подтверждённый ник, UUID и текущую версию дивизиона. Запись готовых
+строк применяется одной транзакцией только после подтверждения.
+
+Перемещение участника:
+
+```json
+{
+  "targetDivisionId": "uuid",
+  "expectedRegistrationVersion": 1,
+  "expectedSourceDivisionVersion": 3,
+  "expectedTargetDivisionVersion": 2
+}
+```
+
+Удаление участника:
+
+```json
+{
+  "expectedRegistrationVersion": 1,
+  "expectedDivisionVersion": 3
+}
+```
+
+Добавление, перемещение и удаление запрещены для дивизиона после первого
+успешного импорта квалификационного матча.
 
 ### Квалификационные матчи
 
@@ -462,4 +492,3 @@ Backend:
 - ответ проходит runtime-валидацию;
 - внутренний API не проксирует внешний payload публично;
 - приватный Ranked API key не используется.
-

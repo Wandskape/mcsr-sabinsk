@@ -44,6 +44,7 @@ export interface AdminDivision {
   version: number
   registrationCount: number
   qualificationMatchCount: number
+  rosterLocked: boolean
 }
 
 export interface AdminTournament {
@@ -64,6 +65,62 @@ export interface AdminTournament {
 export interface CoverUpload {
   objectKey: string
   publicUrl: string
+}
+
+export interface RankedUserProfile {
+  uuid: string
+  nickname: string
+  roleType: number
+  eloRate: number | null
+  eloRank: number | null
+  country: string | null
+  avatarUrl: string
+}
+
+export interface AdminRegistration {
+  id: string
+  version: number
+  nicknameSnapshot: string
+  qualificationPoints: number
+  playedMatches: number
+  participant: RankedUserProfile
+}
+
+export type RegistrationPreviewStatus =
+  | "READY"
+  | "ALREADY_REGISTERED"
+  | "CONFLICT"
+  | "DUPLICATE_INPUT"
+  | "NOT_FOUND"
+  | "ERROR"
+
+export interface RegistrationPreviewItem {
+  identifier: string
+  status: RegistrationPreviewStatus
+  profile: RankedUserProfile | null
+  registeredDivision: string | null
+  message: string | null
+}
+
+export interface RegistrationPreview {
+  divisionId: string
+  divisionVersion: number
+  rosterLocked: boolean
+  items: RegistrationPreviewItem[]
+  readyCount: number
+}
+
+export interface RegistrationMutationResult {
+  registrations: AdminRegistration[]
+  divisionVersion: number
+}
+
+export interface RegistrationMoveResult {
+  registration: AdminRegistration
+  sourceDivisionId: string
+  sourceDivisionVersion: number
+  targetDivisionId: string
+  targetDivisionVersion: number
 }
 
 export interface PublicDivision {

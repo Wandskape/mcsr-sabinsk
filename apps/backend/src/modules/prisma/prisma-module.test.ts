@@ -16,8 +16,11 @@ import { CsrfGuard } from "../auth/guards/csrf.guard.js"
 import { HealthController } from "../health/health.controller.js"
 import { MediaController } from "../media/media.controller.js"
 import { MediaService } from "../media/media.service.js"
+import { ParticipantsController } from "../participants/participants.controller.js"
+import { ParticipantsService } from "../participants/participants.service.js"
 import { QualificationController } from "../qualification/qualification.controller.js"
 import { QualificationService } from "../qualification/qualification.service.js"
+import { RankedService } from "../ranked/ranked.service.js"
 import { TournamentsController } from "../tournaments/tournaments.controller.js"
 import { TournamentsService } from "../tournaments/tournaments.service.js"
 import { PrismaService } from "./prisma.service.js"
@@ -41,6 +44,9 @@ describe("NestJS dependency injection metadata", () => {
     [AdminTournamentsService, PrismaService],
     [MediaController, MediaService],
     [MediaService, ConfigService],
+    [RankedService, ConfigService],
+    [ParticipantsController, ParticipantsService],
+    [ParticipantsService, PrismaService],
   ])("keeps a runtime token for %s", (target, dependency) => {
     const explicitDependencies = Reflect.getMetadata(
       SELF_DECLARED_DEPS_METADATA,
@@ -64,6 +70,21 @@ describe("NestJS dependency injection metadata", () => {
         { index: 0, param: PrismaService },
         { index: 1, param: AuditService },
         { index: 2, param: MediaService },
+      ])
+    )
+  })
+
+  it("keeps every explicit ParticipantsService dependency token", () => {
+    const explicitDependencies = Reflect.getMetadata(
+      SELF_DECLARED_DEPS_METADATA,
+      ParticipantsService
+    ) as Array<{ index: number; param: unknown }>
+
+    expect(explicitDependencies).toEqual(
+      expect.arrayContaining([
+        { index: 0, param: PrismaService },
+        { index: 1, param: RankedService },
+        { index: 2, param: AuditService },
       ])
     )
   })
