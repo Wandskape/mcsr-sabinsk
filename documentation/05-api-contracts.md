@@ -386,8 +386,10 @@ Bulk:
 
 ### Квалификационные матчи
 
+- `GET /admin/divisions/:divisionId/qualification-matches`
 - `POST /admin/divisions/:divisionId/qualification-matches/import-preview`
 - `POST /admin/divisions/:divisionId/qualification-matches/import`
+- `POST /admin/qualification-matches/:matchId/reimport-preview`
 - `POST /admin/qualification-matches/:matchId/reimport`
 - `POST /admin/qualification-matches/:matchId/completed-correction`
 - `GET /admin/qualification-matches/:matchId/imports`
@@ -423,6 +425,7 @@ Preview response показывает:
 
 ```json
 {
+  "previewToken": "short-lived-signed-token",
   "confirm": true,
   "reason": "Ranked API исправил время участника Player1",
   "expectedMatchVersion": 3

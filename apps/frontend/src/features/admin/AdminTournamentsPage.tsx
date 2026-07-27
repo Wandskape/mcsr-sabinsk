@@ -28,6 +28,7 @@ import {
 } from "@/lib/api-client"
 
 import { AdminShell } from "./AdminShell"
+import { TournamentQualificationManager } from "./TournamentQualificationManager"
 import { TournamentRosterManager } from "./TournamentRosterManager"
 
 const TournamentFormSchema = z
@@ -699,6 +700,12 @@ export function AdminTournamentsPage() {
               </section>
 
               <TournamentRosterManager
+                session={session}
+                tournament={selected}
+                onTournamentChanged={upsertTournament}
+              />
+
+              <TournamentQualificationManager
                 session={session}
                 tournament={selected}
                 onTournamentChanged={upsertTournament}

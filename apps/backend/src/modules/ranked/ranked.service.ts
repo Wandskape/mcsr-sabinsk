@@ -6,11 +6,13 @@ import {
 } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import {
+  parseRankedMatchPayload,
   parseRankedUserProfile,
+  type RankedMatchPayload,
   type RankedUserProfile,
 } from "@mcsr-sabinsk/shared"
 
-const REQUEST_TIMEOUT_MS = 5_000
+const REQUEST_TIMEOUT_MS = 10_000
 const MAX_ATTEMPTS = 3
 
 function retryDelay(response: Response, attempt: number) {
@@ -114,5 +116,64 @@ export class RankedService {
     }
 
     return results
+  }
+
+  async getMatch(
+    matchId: string
+  ): Promise<{ payload: RankedMatchPayload; rawPayload: unknown } | null> {
+    let lastFailure: unknown = null
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      try {
+        const response = await fetch(
+          `${this.baseUrl}/matches/${encodeURIComponent(matchId.trim())}`,
+          {
+            headers: { Accept: "application/json" },
+            redirect: "error",
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          }
+        )
+        if ([400, 401, 404].includes(response.status)) {
+          return null
+        }
+        if (response.status === 429 || response.status >= 500) {
+          lastFailure = new Error(`Ranked API returned ${response.status}`)
+          if (attempt + 1 < MAX_ATTEMPTS) {
+            await wait(retryDelay(response, attempt))
+            continue
+          }
+          break
+        }
+        if (!response.ok) {
+          throw new BadGatewayException("Ranked API вернул неожиданный ответ.")
+        }
+
+        const rawPayload: unknown = await response.json()
+        try {
+          return {
+            payload: parseRankedMatchPayload(rawPayload),
+            rawPayload,
+          }
+        } catch {
+          throw new BadGatewayException(
+            "Ranked API вернул неполные данные матча."
+          )
+        }
+      } catch (error) {
+        if (error instanceof BadGatewayException) {
+          throw error
+        }
+        lastFailure = error
+        if (attempt + 1 < MAX_ATTEMPTS) {
+          await wait(250 * 2 ** attempt)
+          continue
+        }
+      }
+    }
+
+    void lastFailure
+    throw new ServiceUnavailableException(
+      "Ranked API временно недоступен. Повторите попытку позже."
+    )
   }
 }

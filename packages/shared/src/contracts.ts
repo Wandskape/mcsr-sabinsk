@@ -214,3 +214,56 @@ export interface QualificationMatchDetails {
   rankedMatchId: string
   results: QualificationMatchResult[]
 }
+
+export interface QualificationImportPreviewResult {
+  registrationId: string
+  participantUuid: string
+  nickname: string
+  status: QualificationResultStatus
+  placement: number | null
+  rawTimeMs: number | null
+  effectiveTimeMs: number
+  points: number
+  lastPhase: string | null
+  timeline: TimelineSegment[]
+}
+
+export interface QualificationIgnoredPlayer {
+  participantUuid: string
+  nickname: string
+}
+
+export interface QualificationImportPreview {
+  rankedMatchId: string
+  playedAt: string
+  payloadHash: string
+  previewToken: string
+  participantCount: number
+  winnerRegistrationId: string | null
+  results: QualificationImportPreviewResult[]
+  ignoredPlayers: QualificationIgnoredPlayer[]
+  warnings: string[]
+  changed: boolean
+}
+
+export interface AdminQualificationMatch extends QualificationMatchSummary {
+  version: number
+  payloadHash: string
+  resultCounts: Record<QualificationResultStatus, number>
+}
+
+export interface QualificationImportApplied {
+  match: AdminQualificationMatch
+  divisionVersion: number
+  changed: boolean
+}
+
+export interface QualificationImportHistoryEntry {
+  id: string
+  importVersion: number
+  status: "PENDING" | "APPLIED" | "FAILED" | "SUPERSEDED"
+  payloadHash: string
+  rankedFetchedAt: string
+  appliedAt: string | null
+  correctionReason: string | null
+}

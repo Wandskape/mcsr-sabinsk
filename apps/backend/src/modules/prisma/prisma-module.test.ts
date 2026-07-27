@@ -19,6 +19,8 @@ import { MediaService } from "../media/media.service.js"
 import { ParticipantsController } from "../participants/participants.controller.js"
 import { ParticipantsService } from "../participants/participants.service.js"
 import { QualificationController } from "../qualification/qualification.controller.js"
+import { QualificationImportController } from "../qualification/qualification-import.controller.js"
+import { QualificationImportService } from "../qualification/qualification-import.service.js"
 import { QualificationService } from "../qualification/qualification.service.js"
 import { RankedService } from "../ranked/ranked.service.js"
 import { TournamentsController } from "../tournaments/tournaments.controller.js"
@@ -33,6 +35,8 @@ describe("NestJS dependency injection metadata", () => {
     [TournamentsController, TournamentsService],
     [QualificationService, PrismaService],
     [QualificationController, QualificationService],
+    [QualificationImportController, QualificationImportService],
+    [QualificationImportService, PrismaService],
     [AuditService, PrismaService],
     [AuthService, PrismaService],
     [AuthController, AuthService],
@@ -85,6 +89,22 @@ describe("NestJS dependency injection metadata", () => {
         { index: 0, param: PrismaService },
         { index: 1, param: RankedService },
         { index: 2, param: AuditService },
+      ])
+    )
+  })
+
+  it("keeps every explicit QualificationImportService dependency token", () => {
+    const explicitDependencies = Reflect.getMetadata(
+      SELF_DECLARED_DEPS_METADATA,
+      QualificationImportService
+    ) as Array<{ index: number; param: unknown }>
+
+    expect(explicitDependencies).toEqual(
+      expect.arrayContaining([
+        { index: 0, param: PrismaService },
+        { index: 1, param: RankedService },
+        { index: 2, param: ConfigService },
+        { index: 3, param: AuditService },
       ])
     )
   })
