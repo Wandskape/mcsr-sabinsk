@@ -18,13 +18,17 @@ async function bootstrap() {
     bufferLogs: true,
   })
   const config = app.get(ConfigService)
+  const mediaOrigin = new URL(
+    config.get<string>("S3_PUBLIC_BASE_URL") ??
+      config.getOrThrow<string>("S3_ENDPOINT")
+  ).origin
 
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          imgSrc: ["'self'", "data:"],
+          imgSrc: ["'self'", "data:", mediaOrigin],
           scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
         },

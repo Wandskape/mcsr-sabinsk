@@ -5,16 +5,16 @@ import type {
 } from "@mcsr-sabinsk/shared"
 import {
   Activity,
-  ClipboardList,
   FilePenLine,
   LoaderCircle,
-  LogOut,
   ShieldCheck,
   Trophy,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { ApiError, apiCommand, apiRequest } from "@/lib/api-client"
+import { ApiError, apiRequest } from "@/lib/api-client"
+
+import { AdminShell } from "./AdminShell"
 
 const AUDIT_LABELS: Record<string, string> = {
   AUTH_LOGIN_SUCCEEDED: "Вход выполнен",
@@ -22,6 +22,12 @@ const AUDIT_LABELS: Record<string, string> = {
   AUTH_LOGIN_LOCKED: "Вход временно заблокирован",
   AUTH_LOGIN_BLOCKED: "Отклонена попытка входа",
   AUTH_LOGOUT: "Выход выполнен",
+  TOURNAMENT_CREATED: "Турнир создан",
+  TOURNAMENT_UPDATED: "Турнир изменён",
+  TOURNAMENT_STATUS_CHANGED: "Статус турнира изменён",
+  TOURNAMENT_COVER_SET: "Обложка турнира установлена",
+  TOURNAMENT_COVER_REMOVED: "Обложка турнира удалена",
+  TOURNAMENT_DELETED: "Черновик турнира удалён",
 }
 
 interface DashboardData {
@@ -54,7 +60,6 @@ function AuditRow({ entry }: { entry: AdminAuditEntry }) {
 export function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -79,7 +84,9 @@ export function AdminDashboard() {
           window.location.replace("/admin/login")
           return
         }
-        setError("Не удалось загрузить админ-панель. Проверьте backend.")
+        setError(
+          "Не удалось загрузить админ-панель. Проверьте, что backend запущен."
+        )
       })
       .finally(() => window.clearTimeout(timeout))
 
@@ -88,19 +95,6 @@ export function AdminDashboard() {
       controller.abort()
     }
   }, [])
-
-  async function logout() {
-    if (!data) return
-    setIsLoggingOut(true)
-    try {
-      await apiCommand<void>("/auth/logout", {
-        method: "POST",
-        csrfToken: data.session.csrfToken,
-      })
-    } finally {
-      window.location.replace("/admin/login")
-    }
-  }
 
   if (error) {
     return (
@@ -126,83 +120,51 @@ export function AdminDashboard() {
 
   const { session, overview } = data
   return (
-    <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <a className="admin-brand" href="/admin">
-          <span>MS</span>
-          <strong>MCSR Сабинск</strong>
-        </a>
-        <nav aria-label="Разделы админ-панели">
-          <a className="active" href="/admin">
-            <ClipboardList size={18} aria-hidden="true" />
-            Обзор
-          </a>
-          <span className="disabled" aria-disabled="true">
-            <Trophy size={18} aria-hidden="true" />
-            Турниры
-            <small>следующий этап</small>
-          </span>
-        </nav>
-        <div className="admin-sidebar-footer">
-          <small>Вы вошли как</small>
-          <strong>{session.admin.username}</strong>
-          <button disabled={isLoggingOut} onClick={logout}>
-            {isLoggingOut ? (
-              <LoaderCircle className="spin" size={17} aria-hidden="true" />
-            ) : (
-              <LogOut size={17} aria-hidden="true" />
-            )}
-            Выйти
-          </button>
+    <AdminShell session={session} active="overview">
+      <header className="admin-page-header">
+        <div>
+          <p className="admin-kicker">Панель управления</p>
+          <h1>Обзор</h1>
         </div>
-      </aside>
+        <a href="/">Открыть публичную страницу</a>
+      </header>
 
-      <main className="admin-main">
-        <header className="admin-page-header">
+      <section className="admin-stat-grid" aria-label="Сводка турниров">
+        <article>
+          <Trophy size={22} aria-hidden="true" />
+          <span>Всего турниров</span>
+          <strong>{overview.tournamentCount}</strong>
+        </article>
+        <article>
+          <Activity size={22} aria-hidden="true" />
+          <span>Идут сейчас</span>
+          <strong>{overview.activeTournamentCount}</strong>
+        </article>
+        <article>
+          <FilePenLine size={22} aria-hidden="true" />
+          <span>Черновики</span>
+          <strong>{overview.draftTournamentCount}</strong>
+        </article>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading">
           <div>
-            <p className="admin-kicker">Панель управления</p>
-            <h1>Обзор</h1>
+            <p className="admin-kicker">Безопасность</p>
+            <h2>Последние действия</h2>
           </div>
-          <a href="/">Открыть публичную страницу</a>
-        </header>
-
-        <section className="admin-stat-grid" aria-label="Сводка турниров">
-          <article>
-            <Trophy size={22} aria-hidden="true" />
-            <span>Всего турниров</span>
-            <strong>{overview.tournamentCount}</strong>
-          </article>
-          <article>
-            <Activity size={22} aria-hidden="true" />
-            <span>Идут сейчас</span>
-            <strong>{overview.activeTournamentCount}</strong>
-          </article>
-          <article>
-            <FilePenLine size={22} aria-hidden="true" />
-            <span>Черновики</span>
-            <strong>{overview.draftTournamentCount}</strong>
-          </article>
-        </section>
-
-        <section className="admin-panel">
-          <div className="admin-panel-heading">
-            <div>
-              <p className="admin-kicker">Безопасность</p>
-              <h2>Последние действия</h2>
-            </div>
-            <ShieldCheck size={24} aria-hidden="true" />
-          </div>
-          {overview.recentAudit.length === 0 ? (
-            <p className="admin-empty">Действий пока нет.</p>
-          ) : (
-            <ul className="admin-audit-list">
-              {overview.recentAudit.map((entry) => (
-                <AuditRow key={entry.id} entry={entry} />
-              ))}
-            </ul>
-          )}
-        </section>
-      </main>
-    </div>
+          <ShieldCheck size={24} aria-hidden="true" />
+        </div>
+        {overview.recentAudit.length === 0 ? (
+          <p className="admin-empty">Действий пока нет.</p>
+        ) : (
+          <ul className="admin-audit-list">
+            {overview.recentAudit.map((entry) => (
+              <AuditRow key={entry.id} entry={entry} />
+            ))}
+          </ul>
+        )}
+      </section>
+    </AdminShell>
   )
 }

@@ -1,0 +1,11 @@
+---
+import { AdminTournamentsPage } from "@/features/admin/AdminTournamentsPage"
+import AdminLayout from "@/layouts/AdminLayout.astro"
+---
+
+<AdminLayout
+  title="Турниры — MCSR Сабинск"
+  description="Создание и публикация турниров MCSR Сабинск."
+>
+  <AdminTournamentsPage client:load />
+</AdminLayout>

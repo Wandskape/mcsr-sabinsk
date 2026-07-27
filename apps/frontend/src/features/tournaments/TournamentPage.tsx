@@ -197,6 +197,12 @@ function TournamentContent() {
         />
       </section>
 
+      {tournament.coverUrl && (
+        <div className="tournament-cover">
+          <img src={tournament.coverUrl} alt={`Обложка ${tournament.name}`} />
+        </div>
+      )}
+
       {tournament.description && (
         <p className="tournament-description">{tournament.description}</p>
       )}

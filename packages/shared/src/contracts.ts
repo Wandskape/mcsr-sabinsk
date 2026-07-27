@@ -36,6 +36,36 @@ export interface AdminOverview {
   recentAudit: AdminAuditEntry[]
 }
 
+export interface AdminDivision {
+  id: string
+  type: DivisionType
+  displayName: string
+  timeLimitMs: number
+  version: number
+  registrationCount: number
+  qualificationMatchCount: number
+}
+
+export interface AdminTournament {
+  id: string
+  name: string
+  slug: string
+  description: string
+  startsAt: string
+  endsAt: string
+  status: TournamentStatus
+  coverObjectKey: string | null
+  coverUrl: string | null
+  version: number
+  completedAt: string | null
+  divisions: AdminDivision[]
+}
+
+export interface CoverUpload {
+  objectKey: string
+  publicUrl: string
+}
+
 export interface PublicDivision {
   id: string
   type: DivisionType

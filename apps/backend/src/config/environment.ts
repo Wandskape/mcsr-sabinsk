@@ -6,6 +6,11 @@ interface Environment {
   SESSION_SECRET: string
   CSRF_SECRET: string
   SESSION_COOKIE_NAME: string
+  S3_ENDPOINT: string
+  S3_REGION: string
+  S3_BUCKET: string
+  S3_ACCESS_KEY: string
+  S3_SECRET_KEY: string
 }
 
 function requireString(
@@ -69,5 +74,10 @@ export function validateEnvironment(
     SESSION_SECRET: sessionSecret,
     CSRF_SECRET: csrfSecret,
     SESSION_COOKIE_NAME: sessionCookieName,
+    S3_ENDPOINT: requireString(source, "S3_ENDPOINT"),
+    S3_REGION: requireString(source, "S3_REGION"),
+    S3_BUCKET: requireString(source, "S3_BUCKET"),
+    S3_ACCESS_KEY: requireString(source, "S3_ACCESS_KEY"),
+    S3_SECRET_KEY: requireString(source, "S3_SECRET_KEY"),
   }
 }

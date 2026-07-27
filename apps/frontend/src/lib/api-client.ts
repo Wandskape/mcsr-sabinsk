@@ -66,6 +66,26 @@ export async function apiCommand<T>(
   return readApiResponse<T>(response)
 }
 
+export async function apiFormCommand<T>(
+  path: string,
+  formData: FormData,
+  csrfToken: string,
+  signal?: AbortSignal
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "x-csrf-token": csrfToken,
+    },
+    body: formData,
+    signal: signal ?? null,
+  })
+
+  return readApiResponse<T>(response)
+}
+
 async function readApiResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response
