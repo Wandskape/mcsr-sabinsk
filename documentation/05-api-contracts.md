@@ -176,6 +176,7 @@ Response element:
   "id": "uuid",
   "matchNumber": 1,
   "rankedMatchId": "123456",
+  "completionLimit": 12,
   "playedAt": "2026-08-10T15:00:00.000Z",
   "winner": {
     "registrationId": "uuid",
@@ -195,6 +196,7 @@ Response element:
     "id": "uuid",
     "matchNumber": 1,
     "rankedMatchId": "123456",
+    "completionLimit": 12,
     "timeLimitMs": 900000,
     "results": [
       {
@@ -239,7 +241,7 @@ Response element:
         "status": "COMPLETED",
         "placement": 1,
         "timeMs": 514000,
-        "points": 12
+        "points": 24
       }
     ]
   }
@@ -409,7 +411,8 @@ Preview:
 
 ```json
 {
-  "rankedMatchId": "123456"
+  "rankedMatchId": "123456",
+  "completionLimit": 12
 }
 ```
 
@@ -419,6 +422,7 @@ Preview response показывает:
 - пропустивших;
 - проигнорированных;
 - DNF;
+- выбранный лимит финишей;
 - рассчитанные места и очки;
 - предупреждения.
 
@@ -427,10 +431,23 @@ Preview response показывает:
 ```json
 {
   "rankedMatchId": "123456",
+  "completionLimit": 12,
   "previewToken": "short-lived-signed-token",
   "expectedDivisionVersion": 5
 }
 ```
+
+Preview повторного импорта:
+
+```json
+{
+  "completionLimit": 12
+}
+```
+
+Допустимые значения `completionLimit`: `4`, `6`, `8`, `10`, `12`. Ranked API
+не отдаёт эту настройку: `completions` в его ответе является массивом уже
+финишировавших игроков.
 
 Коррекция завершённого:
 

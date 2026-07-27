@@ -11,6 +11,7 @@ import {
 import { ConfigService } from "@nestjs/config"
 import type {
   AdminQualificationMatch,
+  QualificationCompletionLimit,
   QualificationImportApplied,
   QualificationImportHistoryEntry,
   QualificationImportPreview,
@@ -110,7 +111,11 @@ export class QualificationImportService {
     return { data: matches.map((match) => this.mapAdminMatch(match)) }
   }
 
-  async previewNew(divisionId: string, rankedMatchId: string) {
+  async previewNew(
+    divisionId: string,
+    rankedMatchId: string,
+    completionLimit: QualificationCompletionLimit
+  ) {
     const division = await this.findDivision(divisionId)
     this.assertNormalImportAllowed(division)
     const existing = await this.prisma.qualificationMatch.findUnique({
@@ -125,7 +130,11 @@ export class QualificationImportService {
       )
     }
 
-    const prepared = await this.prepare(division, rankedMatchId)
+    const prepared = await this.prepare(
+      division,
+      rankedMatchId,
+      completionLimit
+    )
     return {
       data: this.createPreview(division, prepared, null, true),
     }
@@ -146,9 +155,14 @@ export class QualificationImportService {
     const token = this.requireToken(input.previewToken, {
       divisionId,
       rankedMatchId: input.rankedMatchId,
+      completionLimit: input.completionLimit,
       matchId: null,
     })
-    const prepared = await this.prepare(division, input.rankedMatchId)
+    const prepared = await this.prepare(
+      division,
+      input.rankedMatchId,
+      input.completionLimit
+    )
     this.assertFreshPreview(token, prepared.payloadHash)
 
     const duplicate = await this.prisma.qualificationMatch.findUnique({
@@ -179,6 +193,7 @@ export class QualificationImportService {
           divisionId,
           matchNumber: (lastMatch?.matchNumber ?? 0) + 1,
           rankedMatchId: input.rankedMatchId,
+          completionLimit: input.completionLimit,
           rankedPlayedAt: prepared.calculation.playedAt,
           winnerRegistrationId: prepared.calculation.winnerRegistrationId,
         },
@@ -205,6 +220,7 @@ export class QualificationImportService {
           requestId: context.requestId,
           after: {
             rankedMatchId: input.rankedMatchId,
+            completionLimit: input.completionLimit,
             importVersion: 1,
             payloadHash: prepared.payloadHash,
           },
@@ -226,7 +242,10 @@ export class QualificationImportService {
     }
   }
 
-  async previewReimport(matchId: string) {
+  async previewReimport(
+    matchId: string,
+    completionLimit: QualificationCompletionLimit
+  ) {
     const match = await this.findMatchScope(matchId)
     const division = match.division
     if (
@@ -237,8 +256,14 @@ export class QualificationImportService {
         "Повторный импорт недоступен на текущем этапе турнира."
       )
     }
-    const prepared = await this.prepare(division, match.rankedMatchId)
-    const changed = prepared.payloadHash !== match.activeImport?.payloadHash
+    const prepared = await this.prepare(
+      division,
+      match.rankedMatchId,
+      completionLimit
+    )
+    const changed =
+      prepared.payloadHash !== match.activeImport?.payloadHash ||
+      match.completionLimit !== completionLimit
     return {
       data: this.createPreview(division, prepared, match.id, changed),
     }
@@ -287,6 +312,8 @@ export class QualificationImportService {
     const data: QualificationImportHistoryEntry[] = imports.map((entry) => ({
       id: entry.id,
       importVersion: entry.importVersion,
+      completionLimit:
+        entry.completionLimit as QualificationCompletionLimit | null,
       status: entry.status,
       payloadHash: entry.payloadHash,
       rankedFetchedAt: entry.rankedFetchedAt.toISOString(),
@@ -314,9 +341,18 @@ export class QualificationImportService {
       rankedMatchId: match.rankedMatchId,
       matchId: match.id,
     })
-    const prepared = await this.prepare(match.division, match.rankedMatchId)
+    const prepared = await this.prepare(
+      match.division,
+      match.rankedMatchId,
+      token.completionLimit
+    )
     this.assertFreshPreview(token, prepared.payloadHash)
-    if (prepared.payloadHash === activeImport.payloadHash) {
+    const completionLimitChanged =
+      match.completionLimit !== token.completionLimit
+    if (
+      prepared.payloadHash === activeImport.payloadHash &&
+      !completionLimitChanged
+    ) {
       return {
         data: {
           match: await this.getMappedMatch(match.id),
@@ -331,6 +367,7 @@ export class QualificationImportService {
         where: { id: match.id, version: input.expectedMatchVersion },
         data: {
           rankedPlayedAt: prepared.calculation.playedAt,
+          completionLimit: token.completionLimit,
           winnerRegistrationId: prepared.calculation.winnerRegistrationId,
           version: { increment: 1 },
         },
@@ -376,10 +413,12 @@ export class QualificationImportService {
           before: {
             importVersion: activeImport.importVersion,
             payloadHash: activeImport.payloadHash,
+            completionLimit: match.completionLimit,
           },
           after: {
             importVersion,
             payloadHash: prepared.payloadHash,
+            completionLimit: token.completionLimit,
           },
         },
         transaction
@@ -398,7 +437,8 @@ export class QualificationImportService {
 
   private async prepare(
     division: DivisionImportScope,
-    rankedMatchId: string
+    rankedMatchId: string,
+    completionLimit: QualificationCompletionLimit
   ): Promise<PreparedImport> {
     const fetched = await this.ranked.getMatch(rankedMatchId)
     if (!fetched) {
@@ -416,7 +456,8 @@ export class QualificationImportService {
         participantUuid: registration.participant.rankedUuid,
         nickname: registration.nicknameSnapshot,
       })),
-      division.timeLimitMs
+      division.timeLimitMs,
+      completionLimit
     )
     if (calculation.participantCount < 2) {
       throw new BadRequestException(
@@ -438,12 +479,14 @@ export class QualificationImportService {
   ): QualificationImportPreview {
     return {
       rankedMatchId: prepared.calculation.rankedMatchId,
+      completionLimit: prepared.calculation.completionLimit,
       playedAt: prepared.calculation.playedAt.toISOString(),
       payloadHash: prepared.payloadHash,
       previewToken: createQualificationPreviewToken(
         {
           divisionId: division.id,
           rankedMatchId: prepared.calculation.rankedMatchId,
+          completionLimit: prepared.calculation.completionLimit,
           payloadHash: prepared.payloadHash,
           matchId,
           expiresAt: Date.now() + 10 * 60 * 1_000,
@@ -471,6 +514,7 @@ export class QualificationImportService {
       data: {
         qualificationMatchId: matchId,
         importVersion,
+        completionLimit: prepared.calculation.completionLimit,
         status: ImportStatus.PENDING,
         rawPayload: prepared.rawPayload,
         payloadHash: prepared.payloadHash,
@@ -599,6 +643,7 @@ export class QualificationImportService {
     expected: {
       divisionId: string
       rankedMatchId: string
+      completionLimit?: QualificationCompletionLimit
       matchId: string | null
     }
   ) {
@@ -608,6 +653,8 @@ export class QualificationImportService {
       payload.expiresAt < Date.now() ||
       payload.divisionId !== expected.divisionId ||
       payload.rankedMatchId !== expected.rankedMatchId ||
+      (expected.completionLimit !== undefined &&
+        payload.completionLimit !== expected.completionLimit) ||
       payload.matchId !== expected.matchId
     ) {
       throw new BadRequestException(
@@ -642,6 +689,8 @@ export class QualificationImportService {
       id: match.id,
       matchNumber: match.matchNumber,
       rankedMatchId: match.rankedMatchId,
+      completionLimit:
+        match.completionLimit as QualificationCompletionLimit | null,
       playedAt: match.rankedPlayedAt?.toISOString() ?? null,
       winner: match.winner
         ? {

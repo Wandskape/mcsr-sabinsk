@@ -2,10 +2,12 @@ import type {
   AdminQualificationMatch,
   AdminSession,
   AdminTournament,
+  QualificationCompletionLimit,
   QualificationImportApplied,
   QualificationImportPreview,
   QualificationResultStatus,
 } from "@mcsr-sabinsk/shared"
+import { QUALIFICATION_COMPLETION_LIMITS } from "@mcsr-sabinsk/shared"
 import {
   Check,
   LoaderCircle,
@@ -54,6 +56,11 @@ export function TournamentQualificationManager({
   )
   const [matches, setMatches] = useState<AdminQualificationMatch[]>([])
   const [rankedMatchId, setRankedMatchId] = useState("")
+  const [completionLimit, setCompletionLimit] =
+    useState<QualificationCompletionLimit>(12)
+  const [matchCompletionLimits, setMatchCompletionLimits] = useState<
+    Record<string, QualificationCompletionLimit>
+  >({})
   const [preview, setPreview] = useState<QualificationImportPreview | null>(
     null
   )
@@ -88,7 +95,17 @@ export function TournamentQualificationManager({
       `/admin/divisions/${division.id}/qualification-matches`,
       controller.signal
     )
-      .then(setMatches)
+      .then((loadedMatches) => {
+        setMatches(loadedMatches)
+        setMatchCompletionLimits((current) =>
+          Object.fromEntries(
+            loadedMatches.map((match) => [
+              match.id,
+              match.completionLimit ?? current[match.id] ?? 12,
+            ])
+          )
+        )
+      })
       .catch((reason: unknown) => {
         if (reason instanceof DOMException && reason.name === "AbortError") {
           return
@@ -106,6 +123,7 @@ export function TournamentQualificationManager({
   function selectDivision(id: string) {
     setDivisionId(id)
     setRankedMatchId("")
+    setCompletionLimit(12)
     setPreview(null)
     setPreviewTarget(null)
     setCorrectionReason("")
@@ -137,7 +155,10 @@ export function TournamentQualificationManager({
         `/admin/divisions/${division.id}/qualification-matches/import-preview`,
         {
           method: "POST",
-          body: { rankedMatchId: normalizedMatchId },
+          body: {
+            rankedMatchId: normalizedMatchId,
+            completionLimit,
+          },
           csrfToken: session.csrfToken,
         }
       )
@@ -156,6 +177,8 @@ export function TournamentQualificationManager({
   }
 
   async function previewReimport(match: AdminQualificationMatch) {
+    const selectedCompletionLimit =
+      matchCompletionLimits[match.id] ?? match.completionLimit ?? 12
     setBusy(`preview-${match.id}`)
     setError(null)
     setNotice(null)
@@ -164,6 +187,7 @@ export function TournamentQualificationManager({
         `/admin/qualification-matches/${match.id}/reimport-preview`,
         {
           method: "POST",
+          body: { completionLimit: selectedCompletionLimit },
           csrfToken: session.csrfToken,
         }
       )
@@ -203,6 +227,7 @@ export function TournamentQualificationManager({
             method: "POST",
             body: {
               rankedMatchId: preview.rankedMatchId,
+              completionLimit: preview.completionLimit,
               previewToken: preview.previewToken,
               expectedDivisionVersion: division.version,
             },
@@ -302,6 +327,27 @@ export function TournamentQualificationManager({
               }}
             />
           </label>
+          <label>
+            <span>Лимит финишей</span>
+            <select
+              value={completionLimit}
+              onChange={(event) => {
+                setCompletionLimit(
+                  Number(
+                    event.currentTarget.value
+                  ) as QualificationCompletionLimit
+                )
+                setPreview(null)
+                setPreviewTarget(null)
+              }}
+            >
+              {QUALIFICATION_COMPLETION_LIMITS.map((limit) => (
+                <option key={limit} value={limit}>
+                  {limit}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="button" disabled={busy !== null} onClick={previewNew}>
             {busy === "preview-new" ? (
               <LoaderCircle className="spin" size={17} aria-hidden="true" />
@@ -339,7 +385,8 @@ export function TournamentQualificationManager({
               <strong>Предпросмотр Ranked-матча {preview.rankedMatchId}</strong>
               <span>
                 {formatPlayedAt(preview.playedAt)} · участников дивизиона в
-                матче: {preview.participantCount}
+                матче: {preview.participantCount} · лимит финишей:{" "}
+                {preview.completionLimit}
               </span>
             </div>
             <em data-changed={preview.changed}>
@@ -469,6 +516,36 @@ export function TournamentQualificationManager({
                   <em>{match.resultCounts.DNF} DNF</em>
                   <em>{match.resultCounts.MISSED} пропусков</em>
                 </span>
+                <label className="admin-qualification-completion-limit">
+                  <span>Лимит финишей</span>
+                  <select
+                    value={
+                      matchCompletionLimits[match.id] ??
+                      match.completionLimit ??
+                      12
+                    }
+                    onChange={(event) => {
+                      const value = Number(
+                        event.currentTarget.value
+                      ) as QualificationCompletionLimit
+                      setMatchCompletionLimits((current) => ({
+                        ...current,
+                        [match.id]: value,
+                      }))
+                      if (previewTarget?.match?.id === match.id) {
+                        setPreview(null)
+                        setPreviewTarget(null)
+                      }
+                    }}
+                  >
+                    {QUALIFICATION_COMPLETION_LIMITS.map((limit) => (
+                      <option key={limit} value={limit}>
+                        {limit}
+                      </option>
+                    ))}
+                  </select>
+                  {match.completionLimit === null && <em>Нужно пересчитать</em>}
+                </label>
                 {match.winner && (
                   <span className="admin-qualification-winner">
                     <Trophy size={14} aria-hidden="true" />

@@ -8,6 +8,7 @@ import {
 const payload = {
   divisionId: "division",
   rankedMatchId: "123456",
+  completionLimit: 12 as const,
   payloadHash: "a".repeat(64),
   matchId: null,
   expiresAt: 1_800_000_000_000,

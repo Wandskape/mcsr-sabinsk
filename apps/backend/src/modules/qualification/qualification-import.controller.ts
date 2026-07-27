@@ -15,6 +15,7 @@ import type { AuthenticatedRequest } from "../auth/auth.types.js"
 import { AdminSessionGuard } from "../auth/guards/admin-session.guard.js"
 import { CsrfGuard } from "../auth/guards/csrf.guard.js"
 import { CompletedQualificationCorrectionDto } from "./dto/completed-qualification-correction.dto.js"
+import { QualificationCompletionLimitDto } from "./dto/qualification-completion-limit.dto.js"
 import { QualificationImportPreviewDto } from "./dto/qualification-import-preview.dto.js"
 import { QualificationImportDto } from "./dto/qualification-import.dto.js"
 import { QualificationReimportDto } from "./dto/qualification-reimport.dto.js"
@@ -53,7 +54,11 @@ export class QualificationImportController {
     @Param("divisionId", ParseUUIDPipe) divisionId: string,
     @Body() input: QualificationImportPreviewDto
   ) {
-    return this.imports.previewNew(divisionId, input.rankedMatchId)
+    return this.imports.previewNew(
+      divisionId,
+      input.rankedMatchId,
+      input.completionLimit
+    )
   }
 
   @Post("divisions/:divisionId/qualification-matches/import")
@@ -70,12 +75,14 @@ export class QualificationImportController {
 
   @Post("qualification-matches/:matchId/reimport-preview")
   @UseGuards(CsrfGuard)
+  @ApiBody({ type: QualificationCompletionLimitDto })
   @ApiOperation({ summary: "Предпросмотр повторного импорта матча" })
   previewReimport(
     @Param("matchId", ParseUUIDPipe)
-    matchId: string
+    matchId: string,
+    @Body() input: QualificationCompletionLimitDto
   ) {
-    return this.imports.previewReimport(matchId)
+    return this.imports.previewReimport(matchId, input.completionLimit)
   }
 
   @Post("qualification-matches/:matchId/reimport")

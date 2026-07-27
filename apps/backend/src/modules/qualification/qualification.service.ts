@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common"
 import type {
   ParticipantMatchResult,
+  QualificationCompletionLimit,
   TimelineSegment,
 } from "@mcsr-sabinsk/shared"
 
@@ -82,6 +83,8 @@ export class QualificationService {
         id: match.id,
         matchNumber: match.matchNumber,
         rankedMatchId: match.rankedMatchId,
+        completionLimit:
+          match.completionLimit as QualificationCompletionLimit | null,
         timeLimitMs: match.division.timeLimitMs,
         results,
       },

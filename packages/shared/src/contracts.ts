@@ -1,5 +1,6 @@
 import type {
   DivisionType,
+  QualificationCompletionLimit,
   QualificationResultStatus,
   TournamentStatus,
 } from "./enums.js"
@@ -196,6 +197,7 @@ export interface QualificationMatchSummary {
   id: string
   matchNumber: number
   rankedMatchId: string
+  completionLimit: QualificationCompletionLimit | null
   playedAt: string | null
   winner: {
     registrationId: string
@@ -245,6 +247,7 @@ export interface QualificationMatchDetails {
   id: string
   matchNumber: number
   rankedMatchId: string
+  completionLimit: QualificationCompletionLimit | null
   timeLimitMs: number
   results: QualificationMatchResult[]
 }
@@ -269,6 +272,7 @@ export interface QualificationIgnoredPlayer {
 
 export interface QualificationImportPreview {
   rankedMatchId: string
+  completionLimit: QualificationCompletionLimit
   playedAt: string
   payloadHash: string
   previewToken: string
@@ -295,6 +299,7 @@ export interface QualificationImportApplied {
 export interface QualificationImportHistoryEntry {
   id: string
   importVersion: number
+  completionLimit: QualificationCompletionLimit | null
   status: "PENDING" | "APPLIED" | "FAILED" | "SUPERSEDED"
   payloadHash: string
   rankedFetchedAt: string

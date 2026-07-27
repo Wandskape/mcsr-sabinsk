@@ -151,6 +151,8 @@ export class TournamentsService {
       id: match.id,
       matchNumber: match.matchNumber,
       rankedMatchId: match.rankedMatchId,
+      completionLimit:
+        match.completionLimit as QualificationMatchSummary["completionLimit"],
       playedAt: match.rankedPlayedAt?.toISOString() ?? null,
       winner: match.winner
         ? {

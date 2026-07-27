@@ -1,4 +1,5 @@
 import type {
+  QualificationCompletionLimit,
   QualificationIgnoredPlayer,
   QualificationImportPreviewResult,
   QualificationResultStatus,
@@ -16,6 +17,7 @@ interface CalculatedMatch {
   rankedMatchId: string
   playedAt: Date
   participantCount: number
+  completionLimit: QualificationCompletionLimit
   winnerRegistrationId: string | null
   results: QualificationImportPreviewResult[]
   ignoredPlayers: QualificationIgnoredPlayer[]
@@ -37,7 +39,8 @@ const PHASE_BY_EVENT: Record<string, string> = {
 export function calculateQualificationMatch(
   payload: RankedMatchPayload,
   registrations: RegistrationInput[],
-  timeLimitMs: number
+  timeLimitMs: number,
+  completionLimit: QualificationCompletionLimit
 ): CalculatedMatch {
   const registrationByUuid = new Map(
     registrations.map((registration) => [
@@ -124,11 +127,10 @@ export function calculateQualificationMatch(
       if (nicknameDifference !== 0) return nicknameDifference
       return left.participantUuid.localeCompare(right.participantUuid)
     })
-  const pointsPlaces = Math.floor(participantCount / 2)
   completed.forEach((result, index) => {
     const placement = index + 1
     result.placement = placement
-    result.points = calculatePoints(placement, pointsPlaces)
+    result.points = calculatePoints(placement, completionLimit)
   })
 
   const ignoredPlayers = [...rankedPlayers.values()]
@@ -160,6 +162,7 @@ export function calculateQualificationMatch(
     rankedMatchId: String(payload.id),
     playedAt: parseRankedDate(payload.date),
     participantCount,
+    completionLimit,
     winnerRegistrationId: completed[0]?.registrationId ?? null,
     results: resultDrafts,
     ignoredPlayers,
@@ -167,11 +170,12 @@ export function calculateQualificationMatch(
   }
 }
 
-export function calculatePoints(placement: number, pointsPlaces: number) {
-  if (placement > pointsPlaces) return 0
-  const bonus =
-    placement === 1 ? 5 : placement === 2 ? 3 : placement === 3 ? 1 : 0
-  return pointsPlaces - (placement - 1) + bonus
+export function calculatePoints(
+  placement: number,
+  completionLimit: QualificationCompletionLimit
+) {
+  if (placement > completionLimit) return 0
+  return 24 - (placement - 1) * 2
 }
 
 function normalizeTimeline(

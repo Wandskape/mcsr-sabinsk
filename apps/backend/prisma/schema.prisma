@@ -155,6 +155,7 @@ model QualificationMatch {
   divisionId           String                     @db.Uuid
   matchNumber          Int
   rankedMatchId        String                     @unique @db.VarChar(32)
+  completionLimit      Int?
   rankedPlayedAt       DateTime?                  @db.Timestamptz(3)
   winnerRegistrationId String?                    @db.Uuid
   activeImportId       String?                    @unique @db.Uuid
@@ -173,6 +174,7 @@ model QualificationMatchImport {
   id                   String                @id @default(uuid()) @db.Uuid
   qualificationMatchId String                @db.Uuid
   importVersion        Int
+  completionLimit      Int?
   status               ImportStatus
   rawPayload           Json
   payloadHash          String                @db.Char(64)

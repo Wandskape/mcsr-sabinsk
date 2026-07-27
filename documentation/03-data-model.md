@@ -162,6 +162,7 @@ COMPLETED
 | `divisionId` | UUID | FK |
 | `matchNumber` | int | > 0, unique с `divisionId` |
 | `rankedMatchId` | bigint/string | global unique |
+| `completionLimit` | int? | 4, 6, 8, 10 или 12; null только для legacy |
 | `rankedPlayedAt` | timestamptz? | из API |
 | `winnerRegistrationId` | UUID? | FK |
 | `activeImportId` | UUID? | FK |
@@ -176,6 +177,7 @@ COMPLETED
 | `id` | UUID | PK |
 | `qualificationMatchId` | UUID | FK |
 | `importVersion` | int | unique с матчем |
+| `completionLimit` | int? | снимок правила этой версии; null только для legacy |
 | `status` | ImportStatus | required |
 | `rawPayload` | jsonb | полный ответ Ranked API |
 | `payloadHash` | string | SHA-256 |

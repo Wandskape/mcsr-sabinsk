@@ -21,6 +21,10 @@ export type QualificationResultStatus = z.infer<
   typeof QualificationResultStatusSchema
 >
 
+export const QUALIFICATION_COMPLETION_LIMITS = [4, 6, 8, 10, 12] as const
+export type QualificationCompletionLimit =
+  (typeof QUALIFICATION_COMPLETION_LIMITS)[number]
+
 export const DIVISION_LABELS: Record<DivisionType, string> = {
   BEGINNER: "Новички",
   EXPERIENCED: "Опытные",

@@ -1,8 +1,14 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 
+import {
+  QUALIFICATION_COMPLETION_LIMITS,
+  type QualificationCompletionLimit,
+} from "@mcsr-sabinsk/shared"
+
 export interface QualificationPreviewTokenPayload {
   divisionId: string
   rankedMatchId: string
+  completionLimit: QualificationCompletionLimit
   payloadHash: string
   matchId: string | null
   expiresAt: number
@@ -44,6 +50,9 @@ export function verifyQualificationPreviewToken(
     if (
       typeof parsed.divisionId !== "string" ||
       typeof parsed.rankedMatchId !== "string" ||
+      !QUALIFICATION_COMPLETION_LIMITS.includes(
+        parsed.completionLimit as QualificationCompletionLimit
+      ) ||
       typeof parsed.payloadHash !== "string" ||
       (parsed.matchId !== null && typeof parsed.matchId !== "string") ||
       typeof parsed.expiresAt !== "number"

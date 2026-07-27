@@ -64,7 +64,8 @@ describe("qualification match calculation", () => {
     const result = calculateQualificationMatch(
       matchPayload(),
       registrations,
-      200_000
+      200_000,
+      12
     )
 
     expect(result.participantCount).toBe(5)
@@ -75,20 +76,20 @@ describe("qualification match calculation", () => {
           registrationId: "r-alpha",
           status: "COMPLETED",
           placement: 1,
-          points: 7,
+          points: 24,
           effectiveTimeMs: 100_000,
         }),
         expect.objectContaining({
           registrationId: "r-bravo",
           status: "COMPLETED",
           placement: 2,
-          points: 4,
+          points: 22,
         }),
         expect.objectContaining({
           registrationId: "r-charlie",
           status: "COMPLETED",
           placement: 3,
-          points: 0,
+          points: 20,
         }),
         expect.objectContaining({
           registrationId: "r-delta",
@@ -120,7 +121,8 @@ describe("qualification match calculation", () => {
     const result = calculateQualificationMatch(
       matchPayload(),
       registrations,
-      200_000
+      200_000,
+      12
     )
     const alpha = result.results.find(
       (entry) => entry.registrationId === "r-alpha"
@@ -151,7 +153,8 @@ describe("qualification match calculation", () => {
         { id: "r-bravo", participantUuid: UUIDS.bravo, nickname: "Zulu" },
         { id: "r-alpha", participantUuid: UUIDS.alpha, nickname: "Alpha" },
       ],
-      200_000
+      200_000,
+      12
     )
 
     expect(
@@ -166,9 +169,23 @@ describe("qualification match calculation", () => {
 })
 
 describe("qualification points", () => {
-  it("uses the documented base and podium bonuses", () => {
-    expect(
-      [1, 2, 3, 4, 5, 6].map((place) => calculatePoints(place, 5))
-    ).toEqual([10, 7, 4, 2, 1, 0])
+  it.each([4, 6, 8, 10, 12] as const)(
+    "awards 24 minus two per place for a %i-completion match",
+    (completionLimit) => {
+      const points = Array.from({ length: completionLimit + 1 }, (_, index) =>
+        calculatePoints(index + 1, completionLimit)
+      )
+
+      expect(points.slice(0, completionLimit)).toEqual(
+        Array.from({ length: completionLimit }, (_, index) => 24 - index * 2)
+      )
+      expect(points.at(-1)).toBe(0)
+    }
+  )
+
+  it("uses the configured limit even when fewer players finish", () => {
+    expect([1, 2, 3, 4].map((place) => calculatePoints(place, 12))).toEqual([
+      24, 22, 20, 18,
+    ])
   })
 })
