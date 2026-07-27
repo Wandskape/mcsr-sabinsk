@@ -2,12 +2,15 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type {
   AdminSession,
   AdminTournament,
+  CompletionReadiness,
   CoverUpload,
   TournamentStatus,
 } from "@mcsr-sabinsk/shared"
 import { TOURNAMENT_STATUS_LABELS } from "@mcsr-sabinsk/shared"
 import {
   CalendarDays,
+  CheckCircle2,
+  CircleAlert,
   ImagePlus,
   LoaderCircle,
   Plus,
@@ -196,6 +199,8 @@ export function AdminTournamentsPage() {
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [completionReadiness, setCompletionReadiness] =
+    useState<CompletionReadiness | null>(null)
 
   const selected = useMemo(
     () =>
@@ -310,6 +315,23 @@ export function AdminTournamentsPage() {
 
   async function changeStatus(status: TournamentStatus) {
     if (!session || !selected) return
+    if (status === "COMPLETED") {
+      setBusyAction("completion-readiness")
+      setError(null)
+      try {
+        setCompletionReadiness(
+          await apiRequest<CompletionReadiness>(
+            `/admin/tournaments/${selected.id}/completion-readiness`
+          )
+        )
+      } catch (reason) {
+        handleLoadError(reason)
+      } finally {
+        setBusyAction(null)
+      }
+      return
+    }
+
     const participatingDivisions =
       status === "QUALIFICATION"
         ? selected.divisions.filter(
@@ -332,6 +354,11 @@ export function AdminTournamentsPage() {
     if (!window.confirm(confirmation)) {
       return
     }
+    await applyStatusChange(status)
+  }
+
+  async function applyStatusChange(status: TournamentStatus) {
+    if (!session || !selected) return
     setBusyAction(`status-${status}`)
     setError(null)
     try {
@@ -344,6 +371,7 @@ export function AdminTournamentsPage() {
         }
       )
       upsertTournament(tournament)
+      setCompletionReadiness(null)
       setNotice(`Статус: ${TOURNAMENT_STATUS_LABELS[status]}.`)
     } catch (reason) {
       handleLoadError(reason)
@@ -453,6 +481,7 @@ export function AdminTournamentsPage() {
           onClick={() => {
             setIsCreating(true)
             setSelectedId(null)
+            setCompletionReadiness(null)
             setError(null)
             setNotice(null)
           }}
@@ -491,6 +520,7 @@ export function AdminTournamentsPage() {
                 onClick={() => {
                   setSelectedId(tournament.id)
                   setIsCreating(false)
+                  setCompletionReadiness(null)
                   setError(null)
                   setNotice(null)
                 }}
@@ -699,7 +729,9 @@ export function AdminTournamentsPage() {
                         disabled={busyAction !== null}
                         onClick={() => changeStatus(action.status)}
                       >
-                        {busyAction === `status-${action.status}` ? (
+                        {busyAction === `status-${action.status}` ||
+                        (action.status === "COMPLETED" &&
+                          busyAction === "completion-readiness") ? (
                           <LoaderCircle
                             className="spin"
                             size={17}
@@ -759,6 +791,96 @@ export function AdminTournamentsPage() {
           )}
         </section>
       </div>
+      {completionReadiness && selected && (
+        <div
+          className="admin-completion-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setCompletionReadiness(null)
+            }
+          }}
+        >
+          <section
+            className="admin-completion-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="completion-title"
+          >
+            <div className="admin-panel-heading">
+              <div>
+                <p className="admin-kicker">Финальная проверка</p>
+                <h2 id="completion-title">Завершить «{selected.name}»?</h2>
+              </div>
+              {completionReadiness.canComplete ? (
+                <CheckCircle2
+                  className="admin-completion-ok"
+                  size={28}
+                  aria-hidden="true"
+                />
+              ) : (
+                <CircleAlert
+                  className="admin-completion-blocked"
+                  size={28}
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+            <p className="admin-completion-intro">
+              После завершения турнир станет историческим и обычное
+              редактирование будет заблокировано.
+            </p>
+            <ul className="admin-completion-checks">
+              {completionReadiness.checks.map((check) => (
+                <li
+                  key={check.code}
+                  data-result={
+                    check.passed
+                      ? "passed"
+                      : check.blocking
+                        ? "blocked"
+                        : "warn"
+                  }
+                >
+                  {check.passed ? (
+                    <CheckCircle2 size={19} aria-hidden="true" />
+                  ) : (
+                    <CircleAlert size={19} aria-hidden="true" />
+                  )}
+                  <span>
+                    <strong>{check.label}</strong>
+                    <small>{check.details}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="admin-completion-actions">
+              <button
+                type="button"
+                disabled={busyAction !== null}
+                onClick={() => setCompletionReadiness(null)}
+              >
+                Отмена
+              </button>
+              <button
+                className="admin-primary-action"
+                type="button"
+                disabled={
+                  !completionReadiness.canComplete || busyAction !== null
+                }
+                onClick={() => void applyStatusChange("COMPLETED")}
+              >
+                {busyAction === "status-COMPLETED" ? (
+                  <LoaderCircle className="spin" size={18} aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 size={18} aria-hidden="true" />
+                )}
+                Подтвердить завершение
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </AdminShell>
   )
 }

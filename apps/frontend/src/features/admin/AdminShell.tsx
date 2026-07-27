@@ -1,5 +1,11 @@
 import type { AdminSession } from "@mcsr-sabinsk/shared"
-import { ClipboardList, LoaderCircle, LogOut, Trophy } from "lucide-react"
+import {
+  ClipboardList,
+  LoaderCircle,
+  LogOut,
+  ScrollText,
+  Trophy,
+} from "lucide-react"
 import type { ReactNode } from "react"
 import { useState } from "react"
 
@@ -7,7 +13,7 @@ import { apiCommand } from "@/lib/api-client"
 
 interface AdminShellProps {
   session: AdminSession
-  active: "overview" | "tournaments"
+  active: "overview" | "tournaments" | "audit"
   children: ReactNode
 }
 
@@ -44,6 +50,10 @@ export function AdminShell({ session, active, children }: AdminShellProps) {
           >
             <Trophy size={18} aria-hidden="true" />
             Турниры
+          </a>
+          <a className={active === "audit" ? "active" : ""} href="/admin/audit">
+            <ScrollText size={18} aria-hidden="true" />
+            Журнал аудита
           </a>
         </nav>
         <div className="admin-sidebar-footer">

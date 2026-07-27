@@ -15,36 +15,11 @@ import { useEffect, useState } from "react"
 import { ApiError, apiRequest } from "@/lib/api-client"
 
 import { AdminShell } from "./AdminShell"
-
-const AUDIT_LABELS: Record<string, string> = {
-  AUTH_LOGIN_SUCCEEDED: "Вход выполнен",
-  AUTH_LOGIN_FAILED: "Неудачная попытка входа",
-  AUTH_LOGIN_LOCKED: "Вход временно заблокирован",
-  AUTH_LOGIN_BLOCKED: "Отклонена попытка входа",
-  AUTH_LOGOUT: "Выход выполнен",
-  TOURNAMENT_CREATED: "Турнир создан",
-  TOURNAMENT_UPDATED: "Турнир изменён",
-  TOURNAMENT_STATUS_CHANGED: "Статус турнира изменён",
-  TOURNAMENT_COVER_SET: "Обложка турнира установлена",
-  TOURNAMENT_COVER_REMOVED: "Обложка турнира удалена",
-  TOURNAMENT_DELETED: "Черновик турнира удалён",
-  REGISTRATION_ADDED: "Участник добавлен",
-  REGISTRATIONS_BULK_ADDED: "Добавлен список участников",
-  REGISTRATION_MOVED: "Участник перемещён",
-  REGISTRATION_REMOVED: "Участник удалён",
-}
+import { auditActionLabel, formatAuditTime } from "./audit-presentation"
 
 interface DashboardData {
   session: AdminSession
   overview: AdminOverview
-}
-
-function formatAuditTime(value: string) {
-  return new Intl.DateTimeFormat("ru-RU", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "Europe/Moscow",
-  }).format(new Date(value))
 }
 
 function AuditRow({ entry }: { entry: AdminAuditEntry }) {
@@ -52,7 +27,7 @@ function AuditRow({ entry }: { entry: AdminAuditEntry }) {
     <li className="admin-audit-row">
       <span className="admin-audit-mark" aria-hidden="true" />
       <span>
-        <strong>{AUDIT_LABELS[entry.action] ?? entry.action}</strong>
+        <strong>{auditActionLabel(entry.action)}</strong>
         <small>
           {entry.adminUsername} · {formatAuditTime(entry.createdAt)}
         </small>

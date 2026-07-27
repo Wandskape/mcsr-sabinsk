@@ -297,6 +297,7 @@ Response:
 - `GET /admin/tournaments/:id`
 - `PATCH /admin/tournaments/:id`
 - `DELETE /admin/tournaments/:id` — только чистый черновик
+- `GET /admin/tournaments/:id/completion-readiness`
 - `POST /admin/tournaments/:id/status`
 
 Создание:
@@ -324,6 +325,12 @@ Response:
   "expectedVersion": 3
 }
 ```
+
+Перед переводом в `COMPLETED` frontend получает
+`completion-readiness`. Ответ содержит `canComplete` и массив `checks` с кодом,
+названием, признаком `passed`, признаком `blocking` и русским пояснением.
+Backend повторно выполняет те же блокирующие проверки внутри команды смены
+статуса, поэтому checklist не является обходом серверных ограничений.
 
 ### Обложки
 
@@ -490,7 +497,19 @@ Preview response показывает:
 - `GET /admin/audit-logs`
 - `GET /admin/audit-logs/:id`
 
-Фильтры: admin, action, entity type, entity ID, date range.
+Список поддерживает cursor pagination и фильтры:
+
+- `action`;
+- `entityType`;
+- `entityId`;
+- `adminUsername`;
+- `dateFrom` и `dateTo` в ISO 8601;
+- `limit`, default 30, max 100;
+- `cursor`.
+
+Элемент списка содержит действие, сущность, администратора, причину и время.
+Детальный endpoint дополнительно возвращает `requestId`, безопасные снимки
+`before` и `after`; UI строит по ним построчный diff.
 
 ## 6. Идемпотентность
 

@@ -6,7 +6,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common"
-import type { AdminTournament } from "@mcsr-sabinsk/shared"
+import type {
+  AdminTournament,
+  CompletionReadiness,
+  CompletionReadinessCheck,
+} from "@mcsr-sabinsk/shared"
 
 import type { Prisma } from "../../generated/prisma/client.js"
 import {
@@ -132,6 +136,11 @@ export class AdminTournamentsService {
 
   async get(id: string) {
     return { data: this.map(await this.find(id)) }
+  }
+
+  async completionReadiness(id: string) {
+    const tournament = await this.find(id)
+    return { data: await this.buildCompletionReadiness(tournament) }
   }
 
   async create(input: CreateTournamentDto, context: AdminMutationContext) {
@@ -523,42 +532,136 @@ export class AdminTournamentsService {
       )
     }
 
-    if (
-      tournament.status === TournamentStatus.QUALIFICATION &&
-      nextStatus === TournamentStatus.COMPLETED
-    ) {
-      const bracketCount = await this.prisma.playoffBracket.count({
-        where: { division: { tournamentId: tournament.id } },
-      })
-      if (bracketCount > 0) {
-        throw new BadRequestException(
-          "У турнира уже есть сетки плей-офф. Переведите его в плей-офф."
-        )
+    if (nextStatus === TournamentStatus.COMPLETED) {
+      const readiness = await this.buildCompletionReadiness(tournament)
+      const failed = readiness.checks.find(
+        (check) => check.blocking && !check.passed
+      )
+      if (failed) {
+        throw new BadRequestException(failed.details)
       }
     }
+  }
 
-    if (nextStatus === TournamentStatus.COMPLETED) {
-      const incompleteMatches = await this.prisma.playoffMatch.count({
+  private async buildCompletionReadiness(
+    tournament: AdminTournamentRecord
+  ): Promise<CompletionReadiness> {
+    const [pendingImports, brackets] = await Promise.all([
+      this.prisma.qualificationMatchImport.count({
         where: {
-          bracket: {
+          status: "PENDING",
+          qualificationMatch: {
             division: { tournamentId: tournament.id },
-            isPublished: true,
           },
-          status: { not: PlayoffMatchStatus.COMPLETED },
-          OR: [
-            { kind: PlayoffMatchKind.MAIN },
-            {
-              kind: PlayoffMatchKind.THIRD_PLACE,
-              bracket: { showThirdPlace: true },
-            },
-          ],
         },
-      })
-      if (incompleteMatches > 0) {
-        throw new BadRequestException(
-          "Сначала завершите все матчи опубликованных сеток."
-        )
-      }
+      }),
+      this.prisma.playoffBracket.findMany({
+        where: { division: { tournamentId: tournament.id } },
+        include: {
+          division: { select: { displayName: true } },
+          matches: {
+            select: {
+              kind: true,
+              status: true,
+            },
+          },
+        },
+      }),
+    ])
+    const participatingDivisions = tournament.divisions.filter(
+      (division) => division.isParticipating
+    )
+    const divisionsWithoutMatches = participatingDivisions.filter(
+      (division) => division.qualificationMatches.length === 0
+    )
+    const incompletePublished = brackets.flatMap((bracket) =>
+      bracket.isPublished
+        ? bracket.matches.filter(
+            (match) =>
+              (match.kind === PlayoffMatchKind.MAIN ||
+                bracket.showThirdPlace) &&
+              match.status !== PlayoffMatchStatus.COMPLETED
+          )
+        : []
+    )
+    const unpublishedBrackets = brackets.filter(
+      (bracket) => !bracket.isPublished
+    )
+    const statusEligible =
+      tournament.status === TournamentStatus.QUALIFICATION ||
+      tournament.status === TournamentStatus.PLAYOFF
+    const playoffRouteValid =
+      tournament.status !== TournamentStatus.QUALIFICATION ||
+      brackets.length === 0
+
+    const checks: CompletionReadinessCheck[] = [
+      {
+        code: "STATUS",
+        label: "Турнир находится на завершаемом этапе",
+        passed: statusEligible,
+        blocking: true,
+        details: statusEligible
+          ? "Статус позволяет завершить турнир."
+          : "Завершить можно турнир в квалификации или плей-офф.",
+      },
+      {
+        code: "PENDING_IMPORTS",
+        label: "Нет незавершённых импортов",
+        passed: pendingImports === 0,
+        blocking: true,
+        details:
+          pendingImports === 0
+            ? "Все операции импорта завершены."
+            : `Ожидают завершения импортов: ${pendingImports}.`,
+      },
+      {
+        code: "QUALIFICATION_MATCHES",
+        label: "Во всех дивизионах есть квалификационные матчи",
+        passed: divisionsWithoutMatches.length === 0,
+        blocking: false,
+        details:
+          divisionsWithoutMatches.length === 0
+            ? "Каждый участвующий дивизион содержит сохранённые результаты."
+            : `Без матчей: ${divisionsWithoutMatches
+                .map((division) => division.displayName)
+                .join(", ")}.`,
+      },
+      {
+        code: "PLAYOFF_ROUTE",
+        label: "Выбран правильный путь завершения",
+        passed: playoffRouteValid,
+        blocking: true,
+        details: playoffRouteValid
+          ? "Статус турнира согласован с наличием сеток."
+          : "У турнира есть сетки. Сначала переведите его в плей-офф.",
+      },
+      {
+        code: "PUBLISHED_PLAYOFFS",
+        label: "Опубликованные сетки завершены",
+        passed: incompletePublished.length === 0,
+        blocking: true,
+        details:
+          incompletePublished.length === 0
+            ? "Все отображаемые матчи сеток завершены."
+            : `Не завершено отображаемых матчей: ${incompletePublished.length}.`,
+      },
+      {
+        code: "UNPUBLISHED_PLAYOFFS",
+        label: "Все созданные сетки опубликованы",
+        passed: unpublishedBrackets.length === 0,
+        blocking: false,
+        details:
+          unpublishedBrackets.length === 0
+            ? "Неопубликованных сеток нет."
+            : `Не опубликованы сетки: ${unpublishedBrackets
+                .map((bracket) => bracket.division.displayName)
+                .join(", ")}.`,
+      },
+    ]
+    return {
+      tournamentId: tournament.id,
+      canComplete: checks.every((check) => !check.blocking || check.passed),
+      checks,
     }
   }
 

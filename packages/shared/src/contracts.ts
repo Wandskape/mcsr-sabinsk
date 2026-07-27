@@ -29,11 +29,42 @@ export interface AdminAuditEntry {
   adminUsername: string
 }
 
+export interface AdminAuditDetails extends AdminAuditEntry {
+  requestId: string
+  before: unknown
+  after: unknown
+}
+
+export interface AdminAuditPage {
+  items: AdminAuditEntry[]
+  nextCursor: string | null
+}
+
 export interface AdminOverview {
   tournamentCount: number
   activeTournamentCount: number
   draftTournamentCount: number
   recentAudit: AdminAuditEntry[]
+}
+
+export interface CompletionReadinessCheck {
+  code:
+    | "STATUS"
+    | "PENDING_IMPORTS"
+    | "QUALIFICATION_MATCHES"
+    | "PLAYOFF_ROUTE"
+    | "PUBLISHED_PLAYOFFS"
+    | "UNPUBLISHED_PLAYOFFS"
+  label: string
+  passed: boolean
+  blocking: boolean
+  details: string
+}
+
+export interface CompletionReadiness {
+  tournamentId: string
+  canComplete: boolean
+  checks: CompletionReadinessCheck[]
 }
 
 export interface AdminDivision {

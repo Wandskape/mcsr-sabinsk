@@ -494,6 +494,369 @@ input:focus-visible {
   padding: 1.4rem 0.2rem 0.2rem;
 }
 
+.admin-audit-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: rgb(21 29 33 / 72%);
+}
+
+.admin-audit-filters label {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.admin-audit-filters input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  outline: 0;
+  color: var(--foreground);
+  background: #0e1417;
+}
+
+.admin-audit-filters input:focus {
+  border-color: rgb(79 189 145 / 65%);
+}
+
+.admin-audit-filter-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.admin-audit-filter-actions button,
+.admin-audit-load-more {
+  display: inline-flex;
+  min-height: 2.5rem;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  color: var(--foreground);
+  background: var(--surface-raised);
+}
+
+.admin-audit-layout {
+  display: grid;
+  grid-template-columns: minmax(20rem, 0.85fr) minmax(28rem, 1.15fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.admin-audit-full-list {
+  min-width: 0;
+}
+
+.admin-audit-entry-list {
+  display: grid;
+}
+
+.admin-audit-entry-list > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.9rem 0.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  text-align: left;
+  background: transparent;
+}
+
+.admin-audit-entry-list > button:hover,
+.admin-audit-entry-list > button.active {
+  background: var(--primary-muted);
+}
+
+.admin-audit-entry-list > button > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 0.22rem;
+}
+
+.admin-audit-entry-list strong,
+.admin-audit-entry-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-audit-entry-list small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.admin-audit-load-more {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.admin-audit-details {
+  position: sticky;
+  top: 1rem;
+  min-width: 0;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}
+
+.admin-audit-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-raised);
+}
+
+.admin-audit-details h2 {
+  max-width: calc(100% - 3rem);
+  margin: 0.25rem 0 1rem;
+  font-size: 1.2rem;
+}
+
+.admin-audit-placeholder {
+  display: grid;
+  min-height: 18rem;
+  gap: 0.8rem;
+  place-content: center;
+  justify-items: center;
+  color: var(--muted);
+  text-align: center;
+}
+
+.admin-audit-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0 0 1.2rem;
+}
+
+.admin-audit-meta div {
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: rgb(255 255 255 / 2%);
+}
+
+.admin-audit-meta dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.admin-audit-meta dd {
+  overflow-wrap: anywhere;
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+}
+
+.admin-audit-reason {
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  border: 1px solid rgb(79 189 145 / 25%);
+  border-radius: 0.6rem;
+  background: var(--primary-muted);
+}
+
+.admin-audit-reason p {
+  margin: 0.35rem 0 0;
+  color: var(--foreground);
+}
+
+.admin-audit-diff {
+  min-width: 36rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+
+.admin-audit-diff > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.8fr) repeat(2, minmax(12rem, 1fr));
+}
+
+.admin-audit-diff > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.admin-audit-diff-heading {
+  color: var(--muted);
+  background: rgb(255 255 255 / 4%);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-audit-diff span,
+.admin-audit-diff code,
+.admin-audit-diff pre {
+  min-width: 0;
+  margin: 0;
+  padding: 0.65rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.admin-audit-diff span + span,
+.admin-audit-diff code + pre,
+.admin-audit-diff pre + pre {
+  border-left: 1px solid var(--border);
+}
+
+.admin-audit-diff code {
+  color: #b7c3c6;
+  font-size: 0.7rem;
+}
+
+.admin-audit-diff pre {
+  color: #ffb4ad;
+  font:
+    0.7rem/1.45 ui-monospace,
+    monospace;
+}
+
+.admin-audit-diff pre:last-child {
+  color: #9be4c6;
+}
+
+.admin-completion-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  padding: 1.5rem;
+  place-items: center;
+  background: rgb(3 7 9 / 78%);
+  backdrop-filter: blur(5px);
+}
+
+.admin-completion-dialog {
+  width: min(100%, 43rem);
+  padding: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 45%);
+  background: #11191c;
+}
+
+.admin-completion-dialog h2 {
+  margin: 0.2rem 0 0;
+  font-size: clamp(1.2rem, 3vw, 1.55rem);
+}
+
+.admin-completion-ok {
+  color: var(--primary);
+}
+
+.admin-completion-blocked {
+  color: #ff9e95;
+}
+
+.admin-completion-intro {
+  margin: 0.8rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.admin-completion-checks {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-completion-checks li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: rgb(255 255 255 / 2%);
+}
+
+.admin-completion-checks li[data-result="passed"] > svg {
+  color: var(--primary);
+}
+
+.admin-completion-checks li[data-result="blocked"] {
+  border-color: rgb(255 110 100 / 35%);
+  background: rgb(255 110 100 / 6%);
+}
+
+.admin-completion-checks li[data-result="blocked"] > svg {
+  color: #ff9e95;
+}
+
+.admin-completion-checks li[data-result="warn"] {
+  border-color: rgb(230 187 93 / 30%);
+  background: rgb(230 187 93 / 5%);
+}
+
+.admin-completion-checks li[data-result="warn"] > svg {
+  color: #e6bb5d;
+}
+
+.admin-completion-checks span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-completion-checks strong {
+  font-size: 0.82rem;
+}
+
+.admin-completion-checks small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.admin-completion-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+
+.admin-completion-actions button {
+  display: inline-flex;
+  min-height: 2.65rem;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  color: var(--foreground);
+  background: var(--surface-raised);
+}
+
 .admin-state {
   display: grid;
   min-height: 100vh;
@@ -1353,6 +1716,17 @@ input:focus-visible {
   font-size: 0.68rem;
 }
 
+@media (max-width: 1100px) {
+  .admin-audit-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-audit-details {
+    position: static;
+    max-height: none;
+  }
+}
+
 @media (max-width: 760px) {
   .admin-shell {
     grid-template-columns: 1fr;
@@ -1393,6 +1767,32 @@ input:focus-visible {
 
   .admin-stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-audit-filters,
+  .admin-audit-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-audit-details {
+    padding: 1rem;
+  }
+
+  .admin-completion-backdrop {
+    padding: 0.75rem;
+  }
+
+  .admin-completion-dialog {
+    padding: 1rem;
+  }
+
+  .admin-completion-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .admin-completion-actions button {
+    width: 100%;
   }
 
   .admin-page-header {

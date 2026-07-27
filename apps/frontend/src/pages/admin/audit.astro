@@ -1,0 +1,11 @@
+---
+import { AdminAuditPage } from "@/features/admin/AdminAuditPage"
+import AdminLayout from "@/layouts/AdminLayout.astro"
+---
+
+<AdminLayout
+  title="Журнал аудита — MCSR Сабинск"
+  description="История административных изменений MCSR Сабинск."
+>
+  <AdminAuditPage client:load />
+</AdminLayout>

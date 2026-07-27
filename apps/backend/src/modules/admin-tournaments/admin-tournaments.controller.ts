@@ -53,6 +53,12 @@ export class AdminTournamentsController {
     return this.tournaments.get(id)
   }
 
+  @Get(":id/completion-readiness")
+  @ApiOperation({ summary: "Финальный checklist перед завершением турнира" })
+  completionReadiness(@Param("id", ParseUUIDPipe) id: string) {
+    return this.tournaments.completionReadiness(id)
+  }
+
   @Post()
   @UseGuards(CsrfGuard)
   @ApiBody({ type: CreateTournamentDto })
