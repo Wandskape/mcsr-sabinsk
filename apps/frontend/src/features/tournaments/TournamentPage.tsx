@@ -985,7 +985,8 @@ function PlayoffBracketView({
             <div
               className="public-bracket-matches"
               style={{
-                gridTemplateRows: `repeat(${bracket.size}, minmax(44px, 1fr))`,
+                minHeight: `${Math.max(352, bracket.size * 60)}px`,
+                gridTemplateRows: `repeat(${bracket.size}, minmax(60px, 1fr))`,
               }}
             >
               {round.matches.map((match) => (
