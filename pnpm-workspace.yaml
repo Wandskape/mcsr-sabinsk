@@ -2,6 +2,12 @@ packages:
   - apps/*
   - packages/*
 
+overrides:
+  esbuild: ^0.28.1
+  find-my-way: ^9.7.0
+  "@nestjs/swagger>js-yaml": ^5.2.2
+  valibot: ^1.4.2
+
 allowBuilds:
   "@prisma/engines": true
   "@scarf/scarf": true

@@ -144,6 +144,19 @@ Ranked API подменяется mock server с payload fixtures.
 
 Playwright запускается против собранных frontend/backend и тестовой БД.
 
+Команды:
+
+```powershell
+pnpm test:e2e
+pnpm test:e2e:ui
+```
+
+Обычный запуск сам собирает и временно поднимает backend и frontend preview.
+Публичные smoke-тесты выполняются в desktop и mobile Chromium. Административные
+сценарии требуют `E2E_ADMIN_USERNAME` и `E2E_ADMIN_PASSWORD`; сценарии с записью
+дополнительно требуют `E2E_ALLOW_MUTATIONS=true` и поэтому включаются только на
+изолированной CI/тестовой БД.
+
 Критические потоки:
 
 1. Администратор входит.
@@ -213,6 +226,10 @@ Playwright запускается против собранных frontend/backe
 - импорт без учёта внешнего Ranked latency < 2 s;
 - frontend LCP публичной страницы < 2.5 s на нормальном мобильном соединении.
 
+Минимальный автоматический performance gate делает 20 запросов к публичному
+списку турниров и требует p95 < 500 ms. Полный профиль на максимальном наборе
+данных повторяется на staging перед production release.
+
 ## 10. Приёмка исправлений
 
 Каждый bug fix включает тест, воспроизводящий проблему. Исключение допускается только для чисто визуального исправления, которое покрывается visual snapshot.
@@ -230,3 +247,10 @@ Merge запрещён при ошибке:
 - production build;
 - migration check;
 - dependency security check с критической уязвимостью.
+
+Workflow `.github/workflows/ci.yml` содержит два обязательных задания:
+
+- quality: frozen install, Prisma generate/`pnpm db:validate`, format, lint, typecheck,
+  unit/integration, build и dependency audit;
+- e2e: отдельный PostgreSQL, миграции, seed, Chromium и Playwright-сценарии,
+  включая административную мутацию.

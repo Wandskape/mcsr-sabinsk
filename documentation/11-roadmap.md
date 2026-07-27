@@ -173,7 +173,7 @@
 - публичная история обновляется после коррекции;
 - diff доступен в аудите.
 
-## Этап 9. Hardening
+## Этап 9. Hardening — реализован
 
 Работы:
 
@@ -192,7 +192,17 @@
 - staging restore подтверждён;
 - критических security findings нет.
 
-## Этап 10. Production release
+Реализовано:
+
+- Playwright smoke/E2E для публичного и административного сценариев;
+- автоматический p95 performance budget публичного API;
+- строгие security headers и CSP;
+- request ID и структурированные HTTP/error logs;
+- CI quality и E2E gates;
+- безопасные backup и restore rehearsal;
+- production dependency audit.
+
+## Этап 10. Production release — следующий и последний этап MVP
 
 Работы:
 

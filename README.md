@@ -125,23 +125,37 @@ pnpm db:studio
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm db:validate
 pnpm test
 pnpm build
+pnpm test:e2e
+pnpm audit:dependencies
+```
+
+Проверка восстановления локальной PostgreSQL:
+
+```powershell
+pnpm db:backup
+pnpm db:restore:rehearsal -- backups/<имя-файла>.dump --confirm
 ```
 
 ## Текущее состояние реализации
 
-Готов первый рабочий вертикальный срез:
+Реализованы этапы 1–9 MVP:
 
-- pnpm-монорепозиторий и CI;
+- pnpm-монорепозиторий и CI с quality/E2E gates;
 - PostgreSQL и MinIO для локальной разработки;
-- полная базовая Prisma-модель турниров, квалификации и плей-офф;
+- Prisma-модель и полный административный цикл турниров, квалификации и плей-офф;
 - health endpoints и публичный API турниров/лидерборда/матчей;
-- русская публичная страница с переключением турниров и дивизионов;
+- русская адаптивная публичная страница с переключением турниров и дивизионов;
 - панели участника и завершённого матча на сохранённых данных;
 - защищённая админская авторизация с Argon2id, серверными сессиями, CSRF,
   ограничением попыток входа и журналом действий;
-- русские страницы входа и обзора админ-панели.
+- импорт/reimport Ranked-матчей, расчёт лидерборда и ручные сетки 4/8/16;
+- CSP/security headers, request ID и структурированные HTTP/error logs;
+- Playwright smoke/E2E, performance budget и dependency audit;
+- безопасные команды backup и restore rehearsal.
 
 Следующий этап по [`documentation/11-roadmap.md`](documentation/11-roadmap.md) —
-CRUD турниров и управление их тремя дивизионами.
+production release: инфраструктура, секреты, миграции, smoke, мониторинг и
+runbook. Это последний этап MVP.
