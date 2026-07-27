@@ -7,13 +7,14 @@ import {
   ParseEnumPipe,
   Query,
 } from "@nestjs/common"
-import { ApiOperation, ApiTags } from "@nestjs/swagger"
+import { ApiExtraModels, ApiOperation, ApiTags } from "@nestjs/swagger"
 
 import { DivisionType } from "../../generated/prisma/enums.js"
-import type { ListTournamentsQueryDto } from "./dto/list-tournaments-query.dto.js"
+import { ListTournamentsQueryDto } from "./dto/list-tournaments-query.dto.js"
 import { TournamentsService } from "./tournaments.service.js"
 
 @ApiTags("tournaments")
+@ApiExtraModels(ListTournamentsQueryDto)
 @Controller("tournaments")
 export class TournamentsController {
   constructor(
