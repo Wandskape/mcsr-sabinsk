@@ -58,20 +58,35 @@ export function AdminDashboard() {
 
   useEffect(() => {
     const controller = new AbortController()
-    Promise.all([
-      apiRequest<AdminSession>("/auth/me", controller.signal),
-      apiRequest<AdminOverview>("/admin/overview", controller.signal),
-    ])
-      .then(([session, overview]) => setData({ session, overview }))
+    const timeout = window.setTimeout(() => controller.abort(), 8_000)
+
+    apiRequest<AdminSession>("/auth/me", controller.signal)
+      .then(async (session) => ({
+        session,
+        overview: await apiRequest<AdminOverview>(
+          "/admin/overview",
+          controller.signal
+        ),
+      }))
+      .then(setData)
       .catch((reason: unknown) => {
-        if (reason instanceof ApiError && reason.status === 401) {
+        const requestWasAborted =
+          reason instanceof DOMException && reason.name === "AbortError"
+        if (
+          requestWasAborted ||
+          (reason instanceof ApiError && reason.status === 401)
+        ) {
           window.location.replace("/admin/login")
           return
         }
         setError("Не удалось загрузить админ-панель. Проверьте backend.")
       })
+      .finally(() => window.clearTimeout(timeout))
 
-    return () => controller.abort()
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
   }, [])
 
   async function logout() {
