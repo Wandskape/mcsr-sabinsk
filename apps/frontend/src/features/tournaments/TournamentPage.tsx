@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type {
   DivisionType,
   ParticipantMatchResult,
+  PublicPlayoff,
   PublicTournament,
   QualificationMatchResult,
   QualificationMatchSummary,
@@ -15,6 +16,7 @@ import {
   Crown,
   ExternalLink,
   ListOrdered,
+  Network,
   Swords,
   Trophy,
   X,
@@ -30,6 +32,7 @@ import {
   useMatchDetails,
   useMatches,
   useParticipantDetails,
+  usePlayoff,
   useStandings,
   useTournaments,
 } from "./queries"
@@ -53,6 +56,7 @@ const queryClient = new QueryClient({
 
 type Selection =
   { type: "participant"; id: string } | { type: "match"; id: string } | null
+type CompetitionView = "qualification" | "playoff"
 
 function readSearchParameter(name: string) {
   if (typeof window === "undefined") return null
@@ -70,15 +74,21 @@ function readSelection(): Selection {
   return { type, id }
 }
 
+function readView(): CompetitionView {
+  return readSearchParameter("view") === "playoff" ? "playoff" : "qualification"
+}
+
 function updateUrl(
   slug: string,
   division: DivisionType,
+  view: CompetitionView,
   selection: Selection,
   replace = false
 ) {
   const url = new URL(window.location.href)
   url.searchParams.set("tournament", slug)
   url.searchParams.set("division", division)
+  url.searchParams.set("view", view)
   if (selection) {
     url.searchParams.set("details", `${selection.type}:${selection.id}`)
   } else {
@@ -101,6 +111,7 @@ function TournamentContent() {
     () => readSearchParameter("division") as DivisionType | null
   )
   const [selection, setSelection] = useState<Selection>(() => readSelection())
+  const [view, setView] = useState<CompetitionView>(() => readView())
   const [mobileSection, setMobileSection] = useState<"standings" | "matches">(
     "standings"
   )
@@ -134,8 +145,15 @@ function TournamentContent() {
     if (selectedDivision !== division.type) {
       setSelectedDivision(division.type)
     }
-    updateUrl(tournament.slug, division.type, selection, true)
-  }, [division, selectedDivision, selectedSlug, tournament])
+    const availableView =
+      view === "playoff" && !division.hasPublishedPlayoff
+        ? "qualification"
+        : view
+    if (availableView !== view) {
+      setView(availableView)
+    }
+    updateUrl(tournament.slug, division.type, availableView, selection, true)
+  }, [division, selectedDivision, selectedSlug, selection, tournament, view])
 
   useEffect(() => {
     const onPopState = () => {
@@ -144,6 +162,7 @@ function TournamentContent() {
         readSearchParameter("division") as DivisionType | null
       )
       setSelection(readSelection())
+      setView(readView())
     }
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
@@ -155,19 +174,24 @@ function TournamentContent() {
       if (event.key === "Escape") {
         setSelection(null)
         if (tournament && division) {
-          updateUrl(tournament.slug, division.type, null)
+          updateUrl(tournament.slug, division.type, view, null)
         }
       }
     }
     window.addEventListener("keydown", closeOnEscape)
     return () => window.removeEventListener("keydown", closeOnEscape)
-  }, [division, selection, tournament])
+  }, [division, selection, tournament, view])
 
   const standings = useStandings(
     tournament?.slug ?? null,
     division?.type ?? null
   )
   const matches = useMatches(tournament?.slug ?? null, division?.type ?? null)
+  const playoff = usePlayoff(
+    tournament?.slug ?? null,
+    division?.type ?? null,
+    view === "playoff" && division?.hasPublishedPlayoff === true
+  )
 
   if (tournamentsQuery.isLoading) {
     return <PageSkeleton />
@@ -200,20 +224,39 @@ function TournamentContent() {
     setSelectedSlug(nextTournament.slug)
     setSelectedDivision(nextDivision.type)
     setSelection(null)
+    const nextView =
+      view === "playoff" && nextDivision.hasPublishedPlayoff
+        ? "playoff"
+        : "qualification"
+    setView(nextView)
     setMobileSection("standings")
-    updateUrl(nextTournament.slug, nextDivision.type, null)
+    updateUrl(nextTournament.slug, nextDivision.type, nextView, null)
   }
 
   const selectDivision = (type: DivisionType) => {
     setSelectedDivision(type)
     setSelection(null)
+    const nextDivision = tournament.divisions.find(
+      (candidate) => candidate.type === type
+    )
+    const nextView =
+      view === "playoff" && nextDivision?.hasPublishedPlayoff
+        ? "playoff"
+        : "qualification"
+    setView(nextView)
     setMobileSection("standings")
-    updateUrl(tournament.slug, type, null)
+    updateUrl(tournament.slug, type, nextView, null)
   }
 
   const selectDetails = (nextSelection: Selection) => {
     setSelection(nextSelection)
-    updateUrl(tournament.slug, division.type, nextSelection)
+    updateUrl(tournament.slug, division.type, view, nextSelection)
+  }
+
+  const selectView = (nextView: CompetitionView) => {
+    setView(nextView)
+    setSelection(null)
+    updateUrl(tournament.slug, division.type, nextView, null)
   }
 
   return (
@@ -277,94 +320,127 @@ function TournamentContent() {
         ))}
       </nav>
 
-      <div
-        className="competition-mobile-tabs"
-        role="tablist"
-        aria-label="Раздел квалификации"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileSection === "standings"}
-          className={mobileSection === "standings" ? "active" : ""}
-          onClick={() => setMobileSection("standings")}
-        >
-          <ListOrdered size={16} aria-hidden="true" />
-          Лидерборд
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileSection === "matches"}
-          className={mobileSection === "matches" ? "active" : ""}
-          onClick={() => setMobileSection("matches")}
-        >
-          <Swords size={16} aria-hidden="true" />
-          Матчи
-        </button>
-      </div>
-
-      <section className="competition-grid">
-        <div
-          className={cn(
-            "competition-column standings-column",
-            mobileSection === "standings" && "mobile-pane-active"
-          )}
-        >
-          <SectionTitle>Лидерборд</SectionTitle>
-          <StandingsTable
-            standings={standings.data?.standings}
-            loading={standings.isLoading}
-            error={standings.isError}
-            showRanks={tournament.status !== "UPCOMING"}
-            selection={selection}
-            onSelect={(id) => {
-              const next =
-                selection?.type === "participant" && selection.id === id
-                  ? null
-                  : ({ type: "participant", id } satisfies Selection)
-              selectDetails(next)
-            }}
-          />
-        </div>
-
-        <div
-          className={cn(
-            "competition-column matches-column",
-            mobileSection === "matches" && "mobile-pane-active"
-          )}
-        >
-          <SectionTitle>Матчи</SectionTitle>
-          <MatchesList
-            matches={matches.data}
-            loading={matches.isLoading}
-            error={matches.isError}
-            upcoming={tournament.status === "UPCOMING"}
-            selection={selection}
-            onSelect={(id) => {
-              const next =
-                selection?.type === "match" && selection.id === id
-                  ? null
-                  : ({ type: "match", id } satisfies Selection)
-              selectDetails(next)
-            }}
-          />
-        </div>
-
-        <DetailsPanel
-          selection={selection}
-          onClose={() => selectDetails(null)}
-          onSelectMatch={(id) => selectDetails({ type: "match", id })}
-        />
-        {selection && (
+      {division.hasPublishedPlayoff && (
+        <nav className="competition-view-tabs" aria-label="Этап турнира">
           <button
             type="button"
-            className="details-backdrop"
-            aria-label="Закрыть подробности"
-            onClick={() => selectDetails(null)}
-          />
-        )}
-      </section>
+            className={view === "qualification" ? "active" : ""}
+            aria-current={view === "qualification" ? "page" : undefined}
+            onClick={() => selectView("qualification")}
+          >
+            <ListOrdered size={17} aria-hidden="true" />
+            Квалификация
+          </button>
+          <button
+            type="button"
+            className={view === "playoff" ? "active" : ""}
+            aria-current={view === "playoff" ? "page" : undefined}
+            onClick={() => selectView("playoff")}
+          >
+            <Network size={17} aria-hidden="true" />
+            Плей-офф
+          </button>
+        </nav>
+      )}
+
+      {view === "qualification" ? (
+        <>
+          <div
+            className="competition-mobile-tabs"
+            role="tablist"
+            aria-label="Раздел квалификации"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileSection === "standings"}
+              className={mobileSection === "standings" ? "active" : ""}
+              onClick={() => setMobileSection("standings")}
+            >
+              <ListOrdered size={16} aria-hidden="true" />
+              Лидерборд
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileSection === "matches"}
+              className={mobileSection === "matches" ? "active" : ""}
+              onClick={() => setMobileSection("matches")}
+            >
+              <Swords size={16} aria-hidden="true" />
+              Матчи
+            </button>
+          </div>
+
+          <section className="competition-grid">
+            <div
+              className={cn(
+                "competition-column standings-column",
+                mobileSection === "standings" && "mobile-pane-active"
+              )}
+            >
+              <SectionTitle>Лидерборд</SectionTitle>
+              <StandingsTable
+                standings={standings.data?.standings}
+                loading={standings.isLoading}
+                error={standings.isError}
+                showRanks={tournament.status !== "UPCOMING"}
+                selection={selection}
+                onSelect={(id) => {
+                  const next =
+                    selection?.type === "participant" && selection.id === id
+                      ? null
+                      : ({ type: "participant", id } satisfies Selection)
+                  selectDetails(next)
+                }}
+              />
+            </div>
+
+            <div
+              className={cn(
+                "competition-column matches-column",
+                mobileSection === "matches" && "mobile-pane-active"
+              )}
+            >
+              <SectionTitle>Матчи</SectionTitle>
+              <MatchesList
+                matches={matches.data}
+                loading={matches.isLoading}
+                error={matches.isError}
+                upcoming={tournament.status === "UPCOMING"}
+                selection={selection}
+                onSelect={(id) => {
+                  const next =
+                    selection?.type === "match" && selection.id === id
+                      ? null
+                      : ({ type: "match", id } satisfies Selection)
+                  selectDetails(next)
+                }}
+              />
+            </div>
+
+            <DetailsPanel
+              selection={selection}
+              onClose={() => selectDetails(null)}
+              onSelectMatch={(id) => selectDetails({ type: "match", id })}
+            />
+            {selection && (
+              <button
+                type="button"
+                className="details-backdrop"
+                aria-label="Закрыть подробности"
+                onClick={() => selectDetails(null)}
+              />
+            )}
+          </section>
+        </>
+      ) : (
+        <PlayoffBracketView
+          bracket={playoff.data}
+          loading={playoff.isLoading}
+          error={playoff.isError}
+        />
+      )}
     </div>
   )
 }
@@ -753,6 +829,88 @@ function TimelineBar({
         />
       )}
     </div>
+  )
+}
+
+function PlayoffBracketView({
+  bracket,
+  loading,
+  error,
+}: {
+  bracket: PublicPlayoff | undefined
+  loading: boolean
+  error: boolean
+}) {
+  if (loading) {
+    return (
+      <div className="playoff-state">
+        <ListSkeleton rows={4} />
+      </div>
+    )
+  }
+  if (error || !bracket) {
+    return (
+      <div className="playoff-state">
+        <EmptyState>Не удалось загрузить сетку плей-офф.</EmptyState>
+      </div>
+    )
+  }
+
+  return (
+    <section className="public-playoff" aria-label="Сетка плей-офф">
+      <div
+        className="public-bracket"
+        style={{
+          gridTemplateColumns: `repeat(${bracket.rounds.length}, minmax(230px, 1fr))`,
+        }}
+      >
+        {bracket.rounds.map((round) => (
+          <section className="public-bracket-round" key={round.roundNumber}>
+            <h2>{round.name}</h2>
+            <div className="public-bracket-matches">
+              {round.matches.map((match) => (
+                <PublicPlayoffMatchCard key={match.id} match={match} />
+              ))}
+              {round.name === "Финал" &&
+                bracket.showThirdPlace &&
+                bracket.thirdPlaceMatch && (
+                  <div className="public-third-place">
+                    <h3>Матч за третье место</h3>
+                    <PublicPlayoffMatchCard match={bracket.thirdPlaceMatch} />
+                  </div>
+                )}
+            </div>
+          </section>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function PublicPlayoffMatchCard({
+  match,
+}: {
+  match: PublicPlayoff["rounds"][number]["matches"][number]
+}) {
+  const participants = [match.participant1, match.participant2]
+  const scores = [match.score1, match.score2]
+  return (
+    <article className="public-playoff-match" data-status={match.status}>
+      {participants.map((participant, index) => {
+        const isWinner =
+          participant !== null &&
+          participant.registrationId === match.winnerRegistrationId
+        return (
+          <div
+            key={participant?.registrationId ?? `waiting-${index}`}
+            className={isWinner ? "winner" : ""}
+          >
+            <span>{participant?.nickname ?? "Ожидается"}</span>
+            <strong>{scores[index] ?? "—"}</strong>
+          </div>
+        )
+      })}
+    </article>
   )
 }
 

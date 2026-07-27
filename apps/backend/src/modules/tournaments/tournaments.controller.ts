@@ -10,6 +10,7 @@ import {
 import { ApiExtraModels, ApiOperation, ApiTags } from "@nestjs/swagger"
 
 import { DivisionType } from "../../generated/prisma/enums.js"
+import { PlayoffsService } from "../playoffs/playoffs.service.js"
 import { ListTournamentsQueryDto } from "./dto/list-tournaments-query.dto.js"
 import { TournamentsService } from "./tournaments.service.js"
 
@@ -19,7 +20,9 @@ import { TournamentsService } from "./tournaments.service.js"
 export class TournamentsController {
   constructor(
     @Inject(TournamentsService)
-    private readonly tournaments: TournamentsService
+    private readonly tournaments: TournamentsService,
+    @Inject(PlayoffsService)
+    private readonly playoffs: PlayoffsService
   ) {}
 
   @Get()
@@ -63,5 +66,16 @@ export class TournamentsController {
     divisionType: DivisionType
   ) {
     return this.tournaments.getMatches(slug, divisionType)
+  }
+
+  @Get(":slug/divisions/:divisionType/playoff")
+  @Header("Cache-Control", "public, max-age=30")
+  @ApiOperation({ summary: "Опубликованная сетка плей-офф дивизиона" })
+  getPlayoff(
+    @Param("slug") slug: string,
+    @Param("divisionType", new ParseEnumPipe(DivisionType))
+    divisionType: DivisionType
+  ) {
+    return this.playoffs.getPublic(slug, divisionType)
   }
 }

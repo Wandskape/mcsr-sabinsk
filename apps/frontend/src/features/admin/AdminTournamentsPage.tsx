@@ -29,6 +29,7 @@ import {
 
 import { AdminShell } from "./AdminShell"
 import { TournamentQualificationManager } from "./TournamentQualificationManager"
+import { TournamentPlayoffManager } from "./TournamentPlayoffManager"
 import { TournamentRosterManager } from "./TournamentRosterManager"
 
 const TournamentFormSchema = z
@@ -721,6 +722,12 @@ export function AdminTournamentsPage() {
               />
 
               <TournamentQualificationManager
+                session={session}
+                tournament={selected}
+                onTournamentChanged={upsertTournament}
+              />
+
+              <TournamentPlayoffManager
                 session={session}
                 tournament={selected}
                 onTournamentChanged={upsertTournament}

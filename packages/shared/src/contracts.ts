@@ -270,3 +270,59 @@ export interface QualificationImportHistoryEntry {
   appliedAt: string | null
   correctionReason: string | null
 }
+
+export type PlayoffMatchKind = "MAIN" | "THIRD_PLACE"
+export type PlayoffMatchStatus = "EMPTY" | "READY" | "COMPLETED"
+
+export interface PlayoffParticipant {
+  registrationId: string
+  nickname: string
+}
+
+export interface PlayoffMatch {
+  id: string
+  kind: PlayoffMatchKind
+  roundNumber: number
+  position: number
+  participant1: PlayoffParticipant | null
+  participant2: PlayoffParticipant | null
+  score1: number | null
+  score2: number | null
+  winnerRegistrationId: string | null
+  status: PlayoffMatchStatus
+  version: number
+}
+
+export interface PlayoffRound {
+  roundNumber: number
+  name: string
+  matches: PlayoffMatch[]
+}
+
+export interface PublicPlayoff {
+  size: 4 | 8 | 16
+  showThirdPlace: boolean
+  rounds: PlayoffRound[]
+  thirdPlaceMatch: PlayoffMatch | null
+}
+
+export interface AdminPlayoffRegistration extends PlayoffParticipant {
+  qualificationPoints: number
+  averageTimeMs: number | null
+}
+
+export interface AdminPlayoffSeed {
+  seedNumber: number
+  registrationId: string | null
+}
+
+export interface AdminPlayoff extends PublicPlayoff {
+  id: string
+  divisionId: string
+  divisionDisplayName: string
+  isPublished: boolean
+  version: number
+  registrations: AdminPlayoffRegistration[]
+  seeds: AdminPlayoffSeed[]
+  warnings: string[]
+}

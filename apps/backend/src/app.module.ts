@@ -9,6 +9,7 @@ import { AuthModule } from "./modules/auth/auth.module.js"
 import { HealthModule } from "./modules/health/health.module.js"
 import { MediaModule } from "./modules/media/media.module.js"
 import { ParticipantsModule } from "./modules/participants/participants.module.js"
+import { PlayoffsModule } from "./modules/playoffs/playoffs.module.js"
 import { PrismaModule } from "./modules/prisma/prisma.module.js"
 import { QualificationModule } from "./modules/qualification/qualification.module.js"
 import { TournamentsModule } from "./modules/tournaments/tournaments.module.js"
@@ -27,6 +28,7 @@ import { TournamentsModule } from "./modules/tournaments/tournaments.module.js"
     MediaModule,
     AdminTournamentsModule,
     ParticipantsModule,
+    PlayoffsModule,
     HealthModule,
     TournamentsModule,
     QualificationModule,

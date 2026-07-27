@@ -11,6 +11,7 @@ import type { AdminTournament } from "@mcsr-sabinsk/shared"
 import type { Prisma } from "../../generated/prisma/client.js"
 import {
   DivisionType,
+  PlayoffMatchKind,
   PlayoffMatchStatus,
   TournamentStatus,
 } from "../../generated/prisma/enums.js"
@@ -544,6 +545,13 @@ export class AdminTournamentsService {
             isPublished: true,
           },
           status: { not: PlayoffMatchStatus.COMPLETED },
+          OR: [
+            { kind: PlayoffMatchKind.MAIN },
+            {
+              kind: PlayoffMatchKind.THIRD_PLACE,
+              bracket: { showThirdPlace: true },
+            },
+          ],
         },
       })
       if (incompleteMatches > 0) {

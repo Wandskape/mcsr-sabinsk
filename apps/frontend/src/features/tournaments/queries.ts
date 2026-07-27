@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import type {
   ParticipantQualification,
+  PublicPlayoff,
   PublicTournament,
   QualificationMatchDetails,
   QualificationMatchSummary,
@@ -72,6 +73,24 @@ export function useMatches(slug: string | null, divisionType: string | null) {
         signal
       ),
     enabled: slug !== null && divisionType !== null,
+    staleTime: 30_000,
+  })
+}
+
+export function usePlayoff(
+  slug: string | null,
+  divisionType: string | null,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: ["playoff", slug, divisionType],
+    queryFn: ({ signal }) =>
+      apiRequest<PublicPlayoff>(
+        `/tournaments/${slug}/divisions/${divisionType}/playoff`,
+        signal
+      ),
+    enabled: enabled && slug !== null && divisionType !== null,
+    retry: false,
     staleTime: 30_000,
   })
 }
