@@ -3058,6 +3058,7 @@ h2 {
 }
 
 .public-bracket {
+  position: relative;
   gap: 96px;
   width: max-content;
   margin-inline: auto;
@@ -3069,6 +3070,44 @@ h2 {
   font-size: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.public-bracket-round {
+  position: relative;
+  z-index: 1;
+}
+
+.public-bracket-connectors {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.public-bracket-connectors path {
+  fill: none;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+
+.bracket-connectors-base path {
+  stroke: rgb(142 157 162 / 46%);
+  stroke-width: 1.5;
+}
+
+.bracket-connectors-active path {
+  opacity: 0;
+  stroke: #64e3b2;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 5px rgb(100 227 178 / 75%));
+  transition: opacity 120ms ease;
+}
+
+.bracket-connectors-active path.active {
+  opacity: 1;
 }
 
 .public-bracket-matches {
@@ -3085,21 +3124,6 @@ h2 {
   border-radius: 9px;
   background: #12191b;
   box-shadow: 0 10px 25px rgb(0 0 0 / 16%);
-}
-
-.public-playoff-match::after {
-  position: absolute;
-  top: 50%;
-  left: 100%;
-  width: 97px;
-  height: 1px;
-  content: "";
-  background: var(--border);
-}
-
-.public-bracket-round:last-child .public-playoff-match::after,
-.public-third-place-panel .public-playoff-match::after {
-  display: none;
 }
 
 .public-third-place-row {
@@ -3140,6 +3164,22 @@ h2 {
 .public-playoff-match > div.winner {
   color: #c4f2d0;
   background: rgb(46 141 82 / 18%);
+}
+
+.public-playoff-participant {
+  outline: none;
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.public-playoff-participant.route-active {
+  color: #d4ffea;
+  background: rgb(61 196 143 / 24%);
+  box-shadow:
+    inset 3px 0 #64e3b2,
+    0 0 18px rgb(70 210 156 / 16%);
 }
 
 .public-playoff-match span {

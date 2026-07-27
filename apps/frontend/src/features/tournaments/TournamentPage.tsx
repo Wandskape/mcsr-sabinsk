@@ -21,7 +21,7 @@ import {
   Trophy,
   X,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { cn } from "@/lib/cn"
 import { formatDuration, formatTournamentPeriod } from "@/lib/format"
@@ -869,6 +869,86 @@ function PlayoffBracketView({
   loading: boolean
   error: boolean
 }) {
+  const bracketRef = useRef<HTMLDivElement>(null)
+  const matchElements = useRef(new Map<string, HTMLElement>())
+  const [connectors, setConnectors] = useState<BracketConnector[]>([])
+  const [activeParticipantId, setActiveParticipantId] = useState<string | null>(
+    null
+  )
+
+  useEffect(() => {
+    const root = bracketRef.current
+    if (!bracket || !root) {
+      setConnectors([])
+      return
+    }
+
+    const measure = () => {
+      const rootRect = root.getBoundingClientRect()
+      const nextConnectors: BracketConnector[] = []
+
+      for (
+        let roundIndex = 1;
+        roundIndex < bracket.rounds.length;
+        roundIndex++
+      ) {
+        const previousRound = bracket.rounds[roundIndex - 1]
+        const currentRound = bracket.rounds[roundIndex]
+        if (!previousRound || !currentRound) continue
+
+        for (const targetMatch of currentRound.matches) {
+          const topMatch = previousRound.matches.find(
+            (match) => match.position === targetMatch.position * 2 - 1
+          )
+          const bottomMatch = previousRound.matches.find(
+            (match) => match.position === targetMatch.position * 2
+          )
+          if (!topMatch || !bottomMatch) continue
+
+          const topElement = matchElements.current.get(topMatch.id)
+          const bottomElement = matchElements.current.get(bottomMatch.id)
+          const targetElement = matchElements.current.get(targetMatch.id)
+          if (!topElement || !bottomElement || !targetElement) continue
+
+          const topRect = topElement.getBoundingClientRect()
+          const bottomRect = bottomElement.getBoundingClientRect()
+          const targetRect = targetElement.getBoundingClientRect()
+          const sourceX = topRect.right - rootRect.left
+          const targetX = targetRect.left - rootRect.left
+
+          nextConnectors.push({
+            id: `${topMatch.id}-${bottomMatch.id}-${targetMatch.id}`,
+            sourceX,
+            targetX,
+            middleX: sourceX + (targetX - sourceX) / 2,
+            topY: topRect.top + topRect.height / 2 - rootRect.top,
+            bottomY: bottomRect.top + bottomRect.height / 2 - rootRect.top,
+            targetY: targetRect.top + targetRect.height / 2 - rootRect.top,
+            topParticipantId: topMatch.winnerRegistrationId,
+            bottomParticipantId: bottomMatch.winnerRegistrationId,
+          })
+        }
+      }
+
+      setConnectors(nextConnectors)
+    }
+
+    const frame = window.requestAnimationFrame(measure)
+    const observer = new ResizeObserver(measure)
+    observer.observe(root)
+    for (const element of matchElements.current.values()) {
+      observer.observe(element)
+    }
+    window.addEventListener("resize", measure)
+    void document.fonts?.ready.then(measure)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      observer.disconnect()
+      window.removeEventListener("resize", measure)
+    }
+  }, [bracket])
+
   if (loading) {
     return (
       <div className="playoff-state">
@@ -888,10 +968,17 @@ function PlayoffBracketView({
     <section className="public-playoff" aria-label="Сетка плей-офф">
       <div
         className="public-bracket"
+        ref={bracketRef}
         style={{
           gridTemplateColumns: `repeat(${bracket.rounds.length}, 230px)`,
         }}
       >
+        <PlayoffConnectors
+          connectors={connectors}
+          width={bracketRef.current?.scrollWidth ?? 0}
+          height={bracketRef.current?.scrollHeight ?? 0}
+          activeParticipantId={activeParticipantId}
+        />
         {bracket.rounds.map((round) => (
           <section className="public-bracket-round" key={round.roundNumber}>
             <h2>{round.name}</h2>
@@ -906,6 +993,16 @@ function PlayoffBracketView({
                   key={match.id}
                   match={match}
                   gridRow={`${(match.position - 1) * 2 ** round.roundNumber + 2 ** (round.roundNumber - 1)} / span 2`}
+                  matchRef={(element) => {
+                    if (element) {
+                      matchElements.current.set(match.id, element)
+                    } else {
+                      matchElements.current.delete(match.id)
+                    }
+                  }}
+                  activeParticipantId={activeParticipantId}
+                  onParticipantEnter={setActiveParticipantId}
+                  onParticipantLeave={() => setActiveParticipantId(null)}
                 />
               ))}
             </div>
@@ -924,7 +1021,12 @@ function PlayoffBracketView({
             style={{ gridColumn: bracket.rounds.length }}
           >
             <h3>Матч за третье место</h3>
-            <PublicPlayoffMatchCard match={bracket.thirdPlaceMatch} />
+            <PublicPlayoffMatchCard
+              match={bracket.thirdPlaceMatch}
+              activeParticipantId={activeParticipantId}
+              onParticipantEnter={setActiveParticipantId}
+              onParticipantLeave={() => setActiveParticipantId(null)}
+            />
           </aside>
         </div>
       )}
@@ -932,12 +1034,97 @@ function PlayoffBracketView({
   )
 }
 
+interface BracketConnector {
+  id: string
+  sourceX: number
+  targetX: number
+  middleX: number
+  topY: number
+  bottomY: number
+  targetY: number
+  topParticipantId: string | null
+  bottomParticipantId: string | null
+}
+
+function PlayoffConnectors({
+  connectors,
+  width,
+  height,
+  activeParticipantId,
+}: {
+  connectors: BracketConnector[]
+  width: number
+  height: number
+  activeParticipantId: string | null
+}) {
+  if (width === 0 || height === 0) return null
+
+  return (
+    <svg
+      className="public-bracket-connectors"
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      aria-hidden="true"
+    >
+      <g className="bracket-connectors-base">
+        {connectors.map((connector) => (
+          <path
+            key={connector.id}
+            d={[
+              `M ${connector.sourceX} ${connector.topY} H ${connector.middleX}`,
+              `M ${connector.sourceX} ${connector.bottomY} H ${connector.middleX}`,
+              `M ${connector.middleX} ${connector.topY} V ${connector.bottomY}`,
+              `M ${connector.middleX} ${connector.targetY} H ${connector.targetX}`,
+            ].join(" ")}
+          />
+        ))}
+      </g>
+      <g className="bracket-connectors-active">
+        {connectors.flatMap((connector) =>
+          [
+            {
+              key: `${connector.id}-top`,
+              participantId: connector.topParticipantId,
+              sourceY: connector.topY,
+            },
+            {
+              key: `${connector.id}-bottom`,
+              participantId: connector.bottomParticipantId,
+              sourceY: connector.bottomY,
+            },
+          ].map((route) => (
+            <path
+              key={route.key}
+              className={
+                activeParticipantId !== null &&
+                route.participantId === activeParticipantId
+                  ? "active"
+                  : ""
+              }
+              d={`M ${connector.sourceX} ${route.sourceY} H ${connector.middleX} V ${connector.targetY} H ${connector.targetX}`}
+            />
+          ))
+        )}
+      </g>
+    </svg>
+  )
+}
+
 function PublicPlayoffMatchCard({
   match,
   gridRow,
+  matchRef,
+  activeParticipantId,
+  onParticipantEnter,
+  onParticipantLeave,
 }: {
   match: PublicPlayoff["rounds"][number]["matches"][number]
   gridRow?: string
+  matchRef?: (element: HTMLElement | null) => void
+  activeParticipantId: string | null
+  onParticipantEnter: (participantId: string) => void
+  onParticipantLeave: () => void
 }) {
   const participants = [match.participant1, match.participant2]
   const scores = [match.score1, match.score2]
@@ -946,6 +1133,7 @@ function PublicPlayoffMatchCard({
       className="public-playoff-match"
       data-status={match.status}
       style={gridRow ? { gridRow } : undefined}
+      ref={matchRef}
     >
       {participants.map((participant, index) => {
         const isWinner =
@@ -954,7 +1142,21 @@ function PublicPlayoffMatchCard({
         return (
           <div
             key={participant?.registrationId ?? `waiting-${index}`}
-            className={isWinner ? "winner" : ""}
+            className={cn(
+              "public-playoff-participant",
+              isWinner && "winner",
+              participant?.registrationId === activeParticipantId &&
+                "route-active"
+            )}
+            tabIndex={participant ? 0 : undefined}
+            onMouseEnter={() =>
+              participant && onParticipantEnter(participant.registrationId)
+            }
+            onMouseLeave={participant ? onParticipantLeave : undefined}
+            onFocus={() =>
+              participant && onParticipantEnter(participant.registrationId)
+            }
+            onBlur={participant ? onParticipantLeave : undefined}
           >
             <span>{participant?.nickname ?? "Ожидается"}</span>
             <strong>{scores[index] ?? "—"}</strong>
