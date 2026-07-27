@@ -227,3 +227,8 @@ Alert:
 - CDN/reverse proxy.
 
 При росте первым независимо масштабируется backend. Отдельный worker/queue вводится только если импорт начнёт превышать HTTP timeout или появятся автоматические задачи.
+# Реализация production-развёртывания
+
+Для первой production-версии утверждён single-server deployment через Docker
+Compose и Caddy. Практический runbook, DNS-записи и команды размещены в
+[`14-timeweb-production-runbook.md`](14-timeweb-production-runbook.md).

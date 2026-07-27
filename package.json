@@ -33,7 +33,10 @@
     "db:backup": "node scripts/database-backup.mjs",
     "db:restore:rehearsal": "node scripts/database-restore-rehearsal.mjs",
     "infra:up": "docker-compose up -d postgres minio",
-    "infra:down": "docker-compose down"
+    "infra:down": "docker-compose down",
+    "prod:config": "docker-compose --env-file .env.production -f compose.production.yaml config",
+    "prod:up": "docker-compose --env-file .env.production -f compose.production.yaml up -d --build",
+    "prod:logs": "docker-compose --env-file .env.production -f compose.production.yaml logs -f --tail=200"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

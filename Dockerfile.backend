@@ -1,0 +1,33 @@
+FROM node:24-bookworm-slim AS build
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+WORKDIR /app
+
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json apps/backend/package.json
+COPY apps/frontend/package.json apps/frontend/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN pnpm install --frozen-lockfile
+
+COPY apps/backend apps/backend
+COPY packages/shared packages/shared
+RUN pnpm --filter @mcsr-sabinsk/shared build \
+    && pnpm --filter @mcsr-sabinsk/backend prisma:generate \
+    && pnpm --filter @mcsr-sabinsk/backend build
+
+FROM node:24-bookworm-slim AS runtime
+
+ENV NODE_ENV=production
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+WORKDIR /app
+
+RUN corepack enable
+COPY --from=build /app /app
+
+WORKDIR /app/apps/backend
+EXPOSE 3000
+CMD ["node", "dist/main.js"]

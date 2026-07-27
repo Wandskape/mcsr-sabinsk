@@ -1,0 +1,16 @@
+.git
+.idea
+.vscode
+node_modules
+**/node_modules
+**/dist
+**/.astro
+**/.env
+**/.env.*
+!.env.example
+api-docs-master
+mscl-website-main
+backups
+playwright-report
+test-results
+documentation
