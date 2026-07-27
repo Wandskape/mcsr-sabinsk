@@ -2176,36 +2176,52 @@ h2 {
 .player-name {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.rank {
+  font-size: 15px;
 }
 
 .points {
   margin-left: auto;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
 .match-row {
-  flex-direction: column;
-  gap: 5px;
-  align-items: stretch;
+  gap: 10px;
+  align-items: center;
   padding: 10px 12px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
+}
+
+.match-number {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .match-winner {
   display: flex;
+  min-width: 0;
   gap: 8px;
   align-items: center;
   color: var(--foreground);
-  font-size: 13px;
+  font-size: 15px;
+}
+
+.match-winner span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .match-winner svg {
+  flex: 0 0 auto;
   width: 14px;
   height: 14px;
   color: #d5bd6c;
@@ -2310,7 +2326,7 @@ h2 {
   justify-content: space-between;
   margin: 17px 0 25px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .participant-summary p {
@@ -2338,7 +2354,7 @@ h2 {
   color: var(--muted);
   background: transparent;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
@@ -2399,7 +2415,7 @@ h2 {
 .result-meta strong {
   overflow: hidden;
   font-family: "Minecraft", monospace;
-  font-size: 12px;
+  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2407,9 +2423,14 @@ h2 {
 .result-meta span,
 .result-meta em {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-style: normal;
   white-space: nowrap;
+}
+
+.timeline-shell {
+  position: relative;
+  width: 100%;
 }
 
 .timeline-bar,
@@ -2417,15 +2438,34 @@ h2 {
   display: flex;
   width: 100%;
   height: 12px;
-  overflow: hidden;
   border-radius: 3px;
   background: rgb(255 255 255 / 4%);
 }
 
+.timeline-bar {
+  align-items: stretch;
+  overflow: visible;
+}
+
 .timeline-segment {
+  position: relative;
   min-width: 2px;
   height: 100%;
+  padding: 0;
   border-right: 1px solid rgb(8 12 14 / 42%);
+  outline: none;
+  transition:
+    height 120ms ease,
+    transform 120ms ease,
+    filter 120ms ease;
+}
+
+.timeline-segment:hover,
+.timeline-segment:focus-visible {
+  z-index: 2;
+  height: 18px;
+  filter: brightness(1.08);
+  transform: translateY(-3px);
 }
 
 .timeline-segment:first-child {
@@ -2439,6 +2479,7 @@ h2 {
 
 .timeline-remaining {
   height: 100%;
+  border-radius: 0 3px 3px 0;
   background:
     repeating-linear-gradient(
       -45deg,
@@ -2448,7 +2489,38 @@ h2 {
     rgb(255 255 255 / 2%);
 }
 
+.timeline-tooltip {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 10px);
+  max-width: min(290px, 85vw);
+  padding: 7px 9px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 6px;
+  background: #f2f5f4;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 35%);
+  color: #172024;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.25;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.timeline-tooltip::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #f2f5f4;
+  content: "";
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
 .timeline-empty {
+  overflow: hidden;
   height: 12px;
   align-items: center;
   padding: 0 5px;
@@ -2955,7 +3027,7 @@ h2 {
   display: inline-flex;
   gap: 4px;
   width: fit-content;
-  margin: 0 0 18px;
+  margin: 16px 0 18px;
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: 10px;

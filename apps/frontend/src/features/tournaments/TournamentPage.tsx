@@ -613,10 +613,10 @@ function MatchesList({
               "row-selected"
           )}
         >
-          <span>Матч {match.matchNumber}</span>
+          <span className="match-number">Матч {match.matchNumber}</span>
           <span className="match-winner">
             <Crown aria-hidden="true" />
-            {match.winner?.nickname ?? "Нет победителя"}
+            <span>{match.winner?.nickname ?? "Нет победителя"}</span>
           </span>
         </button>
       ))}
@@ -774,6 +774,11 @@ function TimelineBar({
   result: QualificationMatchResult
   timeLimitMs: number
 }) {
+  const [activeSegment, setActiveSegment] = useState<{
+    label: string
+    position: number
+  } | null>(null)
+
   if (result.status === "MISSED" || result.timeline.length === 0) {
     return (
       <div className="timeline-empty">
@@ -792,42 +797,65 @@ function TimelineBar({
     result.status === "DNF" ? Math.max(timeLimitMs, totalTime) : totalTime
 
   return (
-    <div
-      className="timeline-bar"
-      aria-label={`Timeline: ${phaseLabel(result.lastPhase)}`}
-    >
-      {result.timeline.map((segment, index) => {
-        const duration = Math.max(segment.endMs - segment.startMs, 1)
-        const phase = PHASE_PRESENTATION[segment.phase] ?? {
-          label: segment.phase,
-          color: "#7a8589",
-        }
-        const tooltip = `${phase.label}: ${formatRaceTime(
-          duration
-        )}, начало ${formatRaceTime(segment.startMs)}`
-        return (
-          <span
-            key={`${segment.phase}-${segment.startMs}-${index}`}
-            className="timeline-segment"
-            style={{
-              backgroundColor: phase.color,
-              width: `${(duration / scaleTime) * 100}%`,
-            }}
-            title={tooltip}
-            aria-label={tooltip}
-          />
-        )
-      })}
-      {result.status === "DNF" && totalTime < timeLimitMs && (
+    <div className="timeline-shell">
+      {activeSegment && (
         <span
-          className="timeline-remaining"
-          style={{
-            width: `${((timeLimitMs - totalTime) / timeLimitMs) * 100}%`,
-          }}
-          title={`До лимита: ${formatRaceTime(timeLimitMs - totalTime)}`}
-          aria-hidden="true"
-        />
+          className="timeline-tooltip"
+          role="tooltip"
+          style={{ left: `${activeSegment.position}%` }}
+        >
+          {activeSegment.label}
+        </span>
       )}
+      <div
+        className="timeline-bar"
+        aria-label={`Timeline: ${phaseLabel(result.lastPhase)}`}
+      >
+        {result.timeline.map((segment, index) => {
+          const duration = Math.max(segment.endMs - segment.startMs, 1)
+          const phase = PHASE_PRESENTATION[segment.phase] ?? {
+            label: segment.phase,
+            color: "#7a8589",
+          }
+          const tooltip = `${phase.label}: ${formatRaceTime(
+            duration
+          )}, начало ${formatRaceTime(segment.startMs)}`
+          const tooltipPosition = Math.min(
+            88,
+            Math.max(12, ((segment.startMs + duration / 2) / scaleTime) * 100)
+          )
+          const showTooltip = () =>
+            setActiveSegment({
+              label: tooltip,
+              position: tooltipPosition,
+            })
+          return (
+            <span
+              key={`${segment.phase}-${segment.startMs}-${index}`}
+              className="timeline-segment"
+              style={{
+                backgroundColor: phase.color,
+                width: `${(duration / scaleTime) * 100}%`,
+              }}
+              tabIndex={0}
+              aria-label={tooltip}
+              onMouseEnter={showTooltip}
+              onMouseLeave={() => setActiveSegment(null)}
+              onFocus={showTooltip}
+              onBlur={() => setActiveSegment(null)}
+            />
+          )
+        })}
+        {result.status === "DNF" && totalTime < timeLimitMs && (
+          <span
+            className="timeline-remaining"
+            style={{
+              width: `${((timeLimitMs - totalTime) / timeLimitMs) * 100}%`,
+            }}
+            aria-hidden="true"
+          />
+        )}
+      </div>
     </div>
   )
 }
