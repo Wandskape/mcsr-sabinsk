@@ -5,6 +5,7 @@ import { TournamentStatus } from "../../generated/prisma/enums.js"
 import {
   assertStatusTransition,
   assertValidDateRange,
+  participatingDivisionIds,
 } from "./tournament-policy.js"
 
 describe("tournament policy", () => {
@@ -35,6 +36,26 @@ describe("tournament policy", () => {
         new Date("2026-08-10T00:00:00Z"),
         new Date("2026-08-10T00:00:00Z")
       )
+    ).toThrow(BadRequestException)
+  })
+
+  it("starts with only non-empty divisions", () => {
+    expect(
+      participatingDivisionIds([
+        { id: "beginner", registrationCount: 4 },
+        { id: "experienced", registrationCount: 0 },
+        { id: "pro", registrationCount: 2 },
+      ])
+    ).toEqual(["beginner", "pro"])
+  })
+
+  it("requires at least one non-empty division", () => {
+    expect(() =>
+      participatingDivisionIds([
+        { id: "beginner", registrationCount: 0 },
+        { id: "experienced", registrationCount: 0 },
+        { id: "pro", registrationCount: 0 },
+      ])
     ).toThrow(BadRequestException)
   })
 })

@@ -134,6 +134,8 @@ Query:
 
 ### `GET /tournaments/:slug`
 
+Для `QUALIFICATION`, `PLAYOFF` и `COMPLETED` массив `divisions` содержит только дивизионы, зафиксированные как участвующие при старте квалификации. В `UPCOMING` доступны все три типа для предварительного просмотра составов.
+
 Публичная карточка турнира и дивизионы.
 
 ### `GET /tournaments/:slug/divisions/:divisionType/standings`

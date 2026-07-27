@@ -309,11 +309,26 @@ export function AdminTournamentsPage() {
 
   async function changeStatus(status: TournamentStatus) {
     if (!session || !selected) return
-    if (
-      !window.confirm(
-        `Перевести турнир в статус «${TOURNAMENT_STATUS_LABELS[status]}»?`
-      )
-    ) {
+    const participatingDivisions =
+      status === "QUALIFICATION"
+        ? selected.divisions.filter(
+            (division) => division.registrationCount > 0
+          )
+        : []
+    const confirmation =
+      status === "QUALIFICATION"
+        ? participatingDivisions.length > 0
+          ? `Начать квалификацию? В турнир войдут дивизионы: ${participatingDivisions
+              .map((division) => division.displayName)
+              .join(", ")}. Пустые дивизионы участвовать не будут.`
+          : "Начать квалификацию нельзя: добавьте участников хотя бы в один дивизион."
+        : `Перевести турнир в статус «${TOURNAMENT_STATUS_LABELS[status]}»?`
+
+    if (status === "QUALIFICATION" && participatingDivisions.length === 0) {
+      setError(confirmation)
+      return
+    }
+    if (!window.confirm(confirmation)) {
       return
     }
     setBusyAction(`status-${status}`)

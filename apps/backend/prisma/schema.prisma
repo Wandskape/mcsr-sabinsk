@@ -46,17 +46,17 @@ enum PlayoffMatchStatus {
 }
 
 model AdminUser {
-  id                 String                     @id @default(uuid()) @db.Uuid
-  username           String                     @unique @db.VarChar(64)
-  passwordHash       String
-  isActive           Boolean                    @default(true)
-  passwordChangedAt  DateTime                   @db.Timestamptz(3)
-  lastLoginAt        DateTime?                  @db.Timestamptz(3)
-  failedLoginCount   Int                        @default(0)
-  lockedUntil        DateTime?                  @db.Timestamptz(3)
-  sessions           AdminSession[]
+  id                   String                     @id @default(uuid()) @db.Uuid
+  username             String                     @unique @db.VarChar(64)
+  passwordHash         String
+  isActive             Boolean                    @default(true)
+  passwordChangedAt    DateTime                   @db.Timestamptz(3)
+  lastLoginAt          DateTime?                  @db.Timestamptz(3)
+  failedLoginCount     Int                        @default(0)
+  lockedUntil          DateTime?                  @db.Timestamptz(3)
+  sessions             AdminSession[]
   qualificationImports QualificationMatchImport[]
-  auditLogs          AuditLog[]
+  auditLogs            AuditLog[]
 
   @@index([username])
 }
@@ -101,6 +101,7 @@ model Division {
   displayName          String                   @db.VarChar(32)
   timeLimitMs          Int
   sortOrder            Int
+  isParticipating      Boolean                  @default(false)
   version              Int                      @default(1)
   tournament           Tournament               @relation(fields: [tournamentId], references: [id], onDelete: Restrict)
   registrations        TournamentRegistration[]
@@ -124,26 +125,26 @@ model Participant {
 }
 
 model TournamentRegistration {
-  id                  String                @id @default(uuid()) @db.Uuid
-  tournamentId        String                @db.Uuid
-  divisionId          String                @db.Uuid
-  participantId       String                @db.Uuid
-  nicknameSnapshot    String                @db.VarChar(32)
-  qualificationPoints Int                   @default(0)
-  averageTimeMs       Int?
-  playedMatches       Int                   @default(0)
-  dnfCount            Int                   @default(0)
-  missedCount         Int                   @default(0)
-  version             Int                   @default(1)
-  tournament          Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Restrict)
-  division            Division              @relation(fields: [divisionId], references: [id], onDelete: Restrict)
-  participant         Participant           @relation(fields: [participantId], references: [id], onDelete: Restrict)
-  qualificationResults QualificationResult[]
-  wonQualificationMatches QualificationMatch[] @relation("QualificationMatchWinner")
-  playoffSeeds        PlayoffSeed[]
-  playoffParticipant1 PlayoffMatch[]        @relation("PlayoffParticipant1")
-  playoffParticipant2 PlayoffMatch[]        @relation("PlayoffParticipant2")
-  playoffWins         PlayoffMatch[]        @relation("PlayoffWinner")
+  id                      String                @id @default(uuid()) @db.Uuid
+  tournamentId            String                @db.Uuid
+  divisionId              String                @db.Uuid
+  participantId           String                @db.Uuid
+  nicknameSnapshot        String                @db.VarChar(32)
+  qualificationPoints     Int                   @default(0)
+  averageTimeMs           Int?
+  playedMatches           Int                   @default(0)
+  dnfCount                Int                   @default(0)
+  missedCount             Int                   @default(0)
+  version                 Int                   @default(1)
+  tournament              Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Restrict)
+  division                Division              @relation(fields: [divisionId], references: [id], onDelete: Restrict)
+  participant             Participant           @relation(fields: [participantId], references: [id], onDelete: Restrict)
+  qualificationResults    QualificationResult[]
+  wonQualificationMatches QualificationMatch[]  @relation("QualificationMatchWinner")
+  playoffSeeds            PlayoffSeed[]
+  playoffParticipant1     PlayoffMatch[]        @relation("PlayoffParticipant1")
+  playoffParticipant2     PlayoffMatch[]        @relation("PlayoffParticipant2")
+  playoffWins             PlayoffMatch[]        @relation("PlayoffWinner")
 
   @@unique([tournamentId, participantId])
   @@index([divisionId, qualificationPoints])
@@ -169,21 +170,21 @@ model QualificationMatch {
 }
 
 model QualificationMatchImport {
-  id                   String             @id @default(uuid()) @db.Uuid
-  qualificationMatchId String             @db.Uuid
+  id                   String                @id @default(uuid()) @db.Uuid
+  qualificationMatchId String                @db.Uuid
   importVersion        Int
   status               ImportStatus
   rawPayload           Json
-  payloadHash          String             @db.Char(64)
-  rankedFetchedAt      DateTime           @db.Timestamptz(3)
-  initiatedByAdminId   String             @db.Uuid
-  correctionReason     String?            @db.Text
-  errorCode            String?            @db.VarChar(100)
-  errorMessage         String?            @db.Text
-  appliedAt            DateTime?          @db.Timestamptz(3)
-  qualificationMatch   QualificationMatch @relation("QualificationMatchImports", fields: [qualificationMatchId], references: [id], onDelete: Restrict)
-  activeForMatch       QualificationMatch? @relation("ActiveQualificationImport")
-  initiatedBy          AdminUser           @relation(fields: [initiatedByAdminId], references: [id], onDelete: Restrict)
+  payloadHash          String                @db.Char(64)
+  rankedFetchedAt      DateTime              @db.Timestamptz(3)
+  initiatedByAdminId   String                @db.Uuid
+  correctionReason     String?               @db.Text
+  errorCode            String?               @db.VarChar(100)
+  errorMessage         String?               @db.Text
+  appliedAt            DateTime?             @db.Timestamptz(3)
+  qualificationMatch   QualificationMatch    @relation("QualificationMatchImports", fields: [qualificationMatchId], references: [id], onDelete: Restrict)
+  activeForMatch       QualificationMatch?   @relation("ActiveQualificationImport")
+  initiatedBy          AdminUser             @relation(fields: [initiatedByAdminId], references: [id], onDelete: Restrict)
   results              QualificationResult[]
 
   @@unique([qualificationMatchId, importVersion])
@@ -236,19 +237,19 @@ model PlayoffSeed {
 }
 
 model PlayoffMatch {
-  id                         String                   @id @default(uuid()) @db.Uuid
-  bracketId                  String                   @db.Uuid
+  id                         String                  @id @default(uuid()) @db.Uuid
+  bracketId                  String                  @db.Uuid
   kind                       PlayoffMatchKind
   roundNumber                Int
   position                   Int
-  participant1RegistrationId String?                  @db.Uuid
-  participant2RegistrationId String?                  @db.Uuid
+  participant1RegistrationId String?                 @db.Uuid
+  participant2RegistrationId String?                 @db.Uuid
   score1                     Int?
   score2                     Int?
-  winnerRegistrationId       String?                  @db.Uuid
+  winnerRegistrationId       String?                 @db.Uuid
   status                     PlayoffMatchStatus
-  version                    Int                      @default(1)
-  bracket                    PlayoffBracket           @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  version                    Int                     @default(1)
+  bracket                    PlayoffBracket          @relation(fields: [bracketId], references: [id], onDelete: Cascade)
   participant1               TournamentRegistration? @relation("PlayoffParticipant1", fields: [participant1RegistrationId], references: [id], onDelete: SetNull)
   participant2               TournamentRegistration? @relation("PlayoffParticipant2", fields: [participant2RegistrationId], references: [id], onDelete: SetNull)
   winner                     TournamentRegistration? @relation("PlayoffWinner", fields: [winnerRegistrationId], references: [id], onDelete: SetNull)

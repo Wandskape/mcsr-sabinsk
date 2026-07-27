@@ -1,4 +1,4 @@
-import { ConflictException } from "@nestjs/common"
+import { BadRequestException, ConflictException } from "@nestjs/common"
 import type { RankedUserProfile } from "@mcsr-sabinsk/shared"
 import { describe, expect, it, vi } from "vitest"
 
@@ -15,12 +15,17 @@ const profile: RankedUserProfile = {
   avatarUrl: "https://mc-heads.net/avatar/abcdef0123456789abcdef0123456789/40",
 }
 
-function dependencies(options?: { locked?: boolean }) {
+function dependencies(options?: {
+  locked?: boolean
+  status?: TournamentStatus
+  isParticipating?: boolean
+}) {
   const division = {
     id: "division",
     tournamentId: "tournament",
     version: 3,
-    tournament: { status: TournamentStatus.UPCOMING },
+    isParticipating: options?.isParticipating ?? false,
+    tournament: { status: options?.status ?? TournamentStatus.UPCOMING },
     qualificationMatches: options?.locked ? [{ id: "match" }] : [],
   }
   const prisma = {
@@ -87,6 +92,21 @@ describe("ParticipantsService preview", () => {
         requestId: "request",
       })
     ).rejects.toBeInstanceOf(ConflictException)
+    expect(ranked.resolveUsers).not.toHaveBeenCalled()
+  })
+
+  it("does not allow adding players to a division excluded at start", async () => {
+    const { service, ranked } = dependencies({
+      status: TournamentStatus.QUALIFICATION,
+      isParticipating: false,
+    })
+
+    await expect(
+      service.addBulk("division", ["PlayerOne"], 3, {
+        adminUserId: "admin",
+        requestId: "request",
+      })
+    ).rejects.toBeInstanceOf(BadRequestException)
     expect(ranked.resolveUsers).not.toHaveBeenCalled()
   })
 })

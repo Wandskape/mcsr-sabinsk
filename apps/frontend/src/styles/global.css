@@ -850,6 +850,15 @@ input:focus-visible {
   place-items: center;
 }
 
+.admin-roster-tabs .admin-division-inactive {
+  padding: 0.2rem 0.35rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 5%);
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-weight: 700;
+}
+
 .admin-roster-lock {
   display: flex;
   gap: 0.65rem;

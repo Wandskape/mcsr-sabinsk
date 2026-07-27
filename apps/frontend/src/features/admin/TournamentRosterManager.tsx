@@ -271,6 +271,9 @@ export function TournamentRosterManager({
   if (!division) return null
 
   const rosterReadOnly =
+    (tournament.status !== "DRAFT" &&
+      tournament.status !== "UPCOMING" &&
+      !division.isParticipating) ||
     division.rosterLocked ||
     tournament.status === "PLAYOFF" ||
     tournament.status === "COMPLETED"
@@ -297,6 +300,11 @@ export function TournamentRosterManager({
           >
             {candidate.displayName}
             <span>{candidate.registrationCount}</span>
+            {tournament.status !== "DRAFT" &&
+              tournament.status !== "UPCOMING" &&
+              !candidate.isParticipating && (
+                <small className="admin-division-inactive">Не участвует</small>
+              )}
             {candidate.rosterLocked && (
               <LockKeyhole size={13} aria-label="Состав зафиксирован" />
             )}
@@ -308,9 +316,13 @@ export function TournamentRosterManager({
         <div className="admin-roster-lock">
           <LockKeyhole size={18} aria-hidden="true" />
           <span>
-            {division.rosterLocked
-              ? "Состав зафиксирован после первого импортированного матча."
-              : "На текущем этапе турнира состав доступен только для просмотра."}
+            {!division.isParticipating &&
+            tournament.status !== "DRAFT" &&
+            tournament.status !== "UPCOMING"
+              ? "Дивизион был пустым на момент старта и не участвует в этом турнире."
+              : division.rosterLocked
+                ? "Состав зафиксирован после первого импортированного матча."
+                : "На текущем этапе турнира состав доступен только для просмотра."}
           </span>
         </div>
       ) : (
@@ -444,7 +456,10 @@ export function TournamentRosterManager({
                           value={candidate.id}
                           disabled={
                             candidate.id !== division.id &&
-                            candidate.rosterLocked
+                            (candidate.rosterLocked ||
+                              (tournament.status !== "DRAFT" &&
+                                tournament.status !== "UPCOMING" &&
+                                !candidate.isParticipating))
                           }
                         >
                           {candidate.displayName}

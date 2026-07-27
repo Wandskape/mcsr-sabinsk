@@ -41,6 +41,7 @@ export interface AdminDivision {
   type: DivisionType
   displayName: string
   timeLimitMs: number
+  isParticipating: boolean
   version: number
   registrationCount: number
   qualificationMatchCount: number

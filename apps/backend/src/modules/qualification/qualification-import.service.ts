@@ -582,6 +582,11 @@ export class QualificationImportService {
         "Импорт матчей разрешён только во время квалификации."
       )
     }
+    if (!division.isParticipating) {
+      throw new ForbiddenException(
+        "Этот дивизион не участвует в текущем турнире."
+      )
+    }
     if (division.registrations.length < 2) {
       throw new BadRequestException(
         "Для импорта нужны минимум два участника дивизиона."

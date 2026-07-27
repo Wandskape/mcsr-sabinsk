@@ -118,6 +118,7 @@ COMPLETED
 | `displayName` | string | фиксированное русское имя |
 | `timeLimitMs` | int | > 0 |
 | `sortOrder` | int | 1, 2, 3 |
+| `isParticipating` | boolean | фиксируется при старте квалификации, default false |
 | `version` | int | default 1 |
 
 ### `Participant`

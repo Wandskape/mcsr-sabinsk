@@ -25,6 +25,7 @@ import type { UpdateTournamentDto } from "./dto/update-tournament.dto.js"
 import {
   assertStatusTransition,
   assertValidDateRange,
+  participatingDivisionIds,
 } from "./tournament-policy.js"
 
 const adminTournamentInclude = {
@@ -106,6 +107,7 @@ function snapshot(tournament: AdminTournamentRecord): Prisma.InputJsonValue {
       type: division.type,
       displayName: division.displayName,
       timeLimitMs: division.timeLimitMs,
+      isParticipating: division.isParticipating,
       version: division.version,
     })),
   }
@@ -283,6 +285,33 @@ export class AdminTournamentsService {
         throw new ConflictException(
           "Статус уже изменён в другой вкладке. Обновите страницу."
         )
+      }
+
+      if (input.status === TournamentStatus.QUALIFICATION) {
+        const divisions = await transaction.division.findMany({
+          where: { tournamentId: id },
+          select: {
+            id: true,
+            _count: { select: { registrations: true } },
+          },
+        })
+        const participatingIds = participatingDivisionIds(
+          divisions.map((division) => ({
+            id: division.id,
+            registrationCount: division._count.registrations,
+          }))
+        )
+        await transaction.division.updateMany({
+          where: { tournamentId: id },
+          data: {
+            isParticipating: false,
+            version: { increment: 1 },
+          },
+        })
+        await transaction.division.updateMany({
+          where: { id: { in: participatingIds } },
+          data: { isParticipating: true },
+        })
       }
 
       const tournament = await transaction.tournament.findUniqueOrThrow({
@@ -485,14 +514,12 @@ export class AdminTournamentsService {
     }
 
     if (nextStatus === TournamentStatus.QUALIFICATION) {
-      const emptyDivision = tournament.divisions.find(
-        (division) => division._count.registrations === 0
+      participatingDivisionIds(
+        tournament.divisions.map((division) => ({
+          id: division.id,
+          registrationCount: division._count.registrations,
+        }))
       )
-      if (emptyDivision) {
-        throw new BadRequestException(
-          `В дивизионе «${emptyDivision.displayName}» нет участников.`
-        )
-      }
     }
 
     if (
@@ -566,6 +593,7 @@ export class AdminTournamentsService {
         type: division.type,
         displayName: division.displayName,
         timeLimitMs: division.timeLimitMs,
+        isParticipating: division.isParticipating,
         version: division.version,
         registrationCount: division._count.registrations,
         qualificationMatchCount: division._count.qualificationMatches,

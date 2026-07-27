@@ -554,6 +554,15 @@ export class ParticipantsService {
 
   private assertRosterEditable(division: DivisionScope) {
     if (
+      division.tournament.status !== TournamentStatus.DRAFT &&
+      division.tournament.status !== TournamentStatus.UPCOMING &&
+      !division.isParticipating
+    ) {
+      throw new BadRequestException(
+        "Дивизион не вошёл в состав турнира при старте квалификации."
+      )
+    }
+    if (
       division.tournament.status === TournamentStatus.PLAYOFF ||
       division.tournament.status === TournamentStatus.COMPLETED
     ) {

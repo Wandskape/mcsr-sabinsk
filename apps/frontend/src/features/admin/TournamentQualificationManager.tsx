@@ -257,7 +257,8 @@ export function TournamentQualificationManager({
 
   if (!division) return null
 
-  const canImport = tournament.status === "QUALIFICATION"
+  const canImport =
+    tournament.status === "QUALIFICATION" && division.isParticipating
   const canReimport =
     tournament.status === "QUALIFICATION" || tournament.status === "COMPLETED"
 
@@ -312,8 +313,11 @@ export function TournamentQualificationManager({
         </div>
       ) : (
         <p className="admin-qualification-hint">
-          Новые матчи можно импортировать, когда турнир находится на этапе
-          «Квалификация».
+          {!division.isParticipating &&
+          tournament.status !== "DRAFT" &&
+          tournament.status !== "UPCOMING"
+            ? "Этот дивизион был пустым на момент старта и не участвует в турнире."
+            : "Новые матчи можно импортировать, когда турнир находится на этапе «Квалификация»."}
         </p>
       )}
 

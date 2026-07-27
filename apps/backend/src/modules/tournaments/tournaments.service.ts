@@ -8,6 +8,7 @@ import type {
 import type { DivisionType, Prisma } from "../../generated/prisma/client.js"
 import { TournamentStatus } from "../../generated/prisma/client.js"
 import { PrismaService } from "../prisma/prisma.service.js"
+import { isDivisionPublic } from "./division-visibility.js"
 import type { ListTournamentsQueryDto } from "./dto/list-tournaments-query.dto.js"
 import { selectDefaultTournament } from "./tournament-selection.js"
 
@@ -172,8 +173,16 @@ export class TournamentsService {
           status: { not: TournamentStatus.DRAFT },
         },
       },
+      include: {
+        tournament: {
+          select: { status: true },
+        },
+      },
     })
-    if (!division) {
+    if (
+      !division ||
+      !isDivisionPublic(division.tournament.status, division.isParticipating)
+    ) {
       throw new NotFoundException("Дивизион турнира не найден.")
     }
     return division
@@ -186,6 +195,10 @@ export class TournamentsService {
       throw new Error("Draft tournament cannot be mapped to a public response")
     }
 
+    const visibleDivisions = tournament.divisions.filter((division) =>
+      isDivisionPublic(tournament.status, division.isParticipating)
+    )
+
     return {
       id: tournament.id,
       name: tournament.name,
@@ -195,7 +208,7 @@ export class TournamentsService {
       endsAt: tournament.endsAt.toISOString(),
       status: tournament.status,
       coverUrl: tournament.coverUrl,
-      divisions: tournament.divisions.map((division) => ({
+      divisions: visibleDivisions.map((division) => ({
         id: division.id,
         type: division.type,
         displayName: division.displayName,

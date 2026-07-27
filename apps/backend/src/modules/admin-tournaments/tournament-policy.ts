@@ -31,3 +31,19 @@ export function assertStatusTransition(
     )
   }
 }
+
+export function participatingDivisionIds(
+  divisions: Array<{ id: string; registrationCount: number }>
+) {
+  const participating = divisions
+    .filter((division) => division.registrationCount > 0)
+    .map((division) => division.id)
+
+  if (participating.length === 0) {
+    throw new BadRequestException(
+      "Для начала квалификации добавьте участников хотя бы в один дивизион."
+    )
+  }
+
+  return participating
+}
