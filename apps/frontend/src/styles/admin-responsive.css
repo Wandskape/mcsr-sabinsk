@@ -79,6 +79,16 @@
 
   .admin-page-header {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .admin-archive-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-page-header > a {

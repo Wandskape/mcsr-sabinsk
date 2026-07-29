@@ -61,12 +61,22 @@ export class AdminService {
       ...(query.entityId ? { entityId: query.entityId } : {}),
       ...(query.adminUsername
         ? {
-            adminUser: {
-              username: {
-                contains: query.adminUsername,
-                mode: "insensitive",
+            OR: [
+              {
+                actorUsernameSnapshot: {
+                  contains: query.adminUsername,
+                  mode: "insensitive",
+                },
               },
-            },
+              {
+                adminUser: {
+                  username: {
+                    contains: query.adminUsername,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            ],
           }
         : {}),
       ...(query.dateFrom || query.dateTo
@@ -127,6 +137,7 @@ export class AdminService {
     entityId: string
     reason: string | null
     createdAt: Date
+    actorUsernameSnapshot: string | null
     adminUser: { username: string }
   }): AdminAuditEntry {
     return {
@@ -136,7 +147,7 @@ export class AdminService {
       entityId: entry.entityId,
       reason: entry.reason,
       createdAt: entry.createdAt.toISOString(),
-      adminUsername: entry.adminUser.username,
+      adminUsername: entry.actorUsernameSnapshot ?? entry.adminUser.username,
     }
   }
 }

@@ -543,6 +543,35 @@ Preview повторного импорта:
 ## 6. Идемпотентность
 
 - Операции импорта принимают `Idempotency-Key`.
+
+## Архивы турниров
+
+### `GET /admin/tournament-archives/:id/export`
+
+Возвращает `application/zip` с одним турниром любого статуса.
+Имя файла передаётся в доступном frontend заголовке `Content-Disposition`.
+
+### `GET /admin/tournament-archives/export-all`
+
+Возвращает один `application/zip` со всеми турнирами.
+
+### `POST /admin/tournament-archives/preview`
+
+`multipart/form-data` с полем `file`. Проверяет формат, контрольные суммы и
+конфликты без записи данных. Возвращает SHA-256 всего файла, агрегированные
+счётчики и статус `READY`, `ALREADY_IMPORTED` или `CONFLICT` для каждого
+турнира.
+
+### `POST /admin/tournament-archives/import`
+
+`multipart/form-data`:
+
+- `file` — тот же ZIP;
+- `archiveChecksum` — SHA-256 из preview.
+
+При несовпадении checksum или наличии конфликта возвращает `409`. Запись
+турнирных данных выполняется транзакционно. Существующие турниры с тем же
+внутренним ID пропускаются.
 - Повтор с тем же ключом и payload возвращает исходный ответ.
 - Повтор с тем же ключом и другим payload возвращает `409`.
 - PATCH использует `expectedVersion`.

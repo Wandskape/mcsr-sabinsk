@@ -115,6 +115,94 @@
   background: var(--surface-raised);
 }
 
+.admin-archive-dialog {
+  width: min(100%, 52rem);
+}
+
+.admin-archive-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.admin-archive-stats span {
+  display: grid;
+  min-height: 4.3rem;
+  gap: 0.25rem;
+  align-content: center;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  color: var(--muted);
+  background: rgb(255 255 255 / 2%);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.admin-archive-stats strong {
+  color: var(--foreground);
+  font-family: "Minecraft", ui-monospace, monospace;
+  font-size: 1rem;
+}
+
+.admin-archive-preview-list {
+  display: grid;
+  max-height: 19rem;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.admin-archive-preview-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.3rem 0.8rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: rgb(255 255 255 / 2%);
+}
+
+.admin-archive-preview-list li[data-status="READY"] {
+  border-color: rgb(79 189 145 / 26%);
+}
+
+.admin-archive-preview-list li[data-status="CONFLICT"] {
+  border-color: rgb(242 139 130 / 30%);
+  background: rgb(242 139 130 / 5%);
+}
+
+.admin-archive-preview-list li > span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-archive-preview-list small,
+.admin-archive-preview-list p {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.admin-archive-preview-list em {
+  align-self: center;
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.admin-archive-preview-list li[data-status="CONFLICT"] em {
+  color: #ff9e95;
+}
+
+.admin-archive-preview-list p {
+  grid-column: 1 / -1;
+  margin: 0.2rem 0 0;
+}
+
 .admin-state {
   display: grid;
   min-height: 100vh;

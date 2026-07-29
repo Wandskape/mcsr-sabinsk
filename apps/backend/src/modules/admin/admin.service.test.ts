@@ -14,6 +14,7 @@ function auditEntry(overrides: Record<string, unknown> = {}) {
     before: { status: "PLAYOFF" },
     after: { status: "COMPLETED" },
     createdAt: new Date("2026-07-27T12:00:00.000Z"),
+    actorUsernameSnapshot: null,
     adminUser: { username: "admin" },
     ...overrides,
   }
@@ -53,9 +54,19 @@ describe("AdminService audit log", () => {
         take: 2,
         where: expect.objectContaining({
           action: "TOURNAMENT_STATUS_CHANGED",
-          adminUser: {
-            username: { contains: "adm", mode: "insensitive" },
-          },
+          OR: [
+            {
+              actorUsernameSnapshot: {
+                contains: "adm",
+                mode: "insensitive",
+              },
+            },
+            {
+              adminUser: {
+                username: { contains: "adm", mode: "insensitive" },
+              },
+            },
+          ],
         }),
       })
     )
@@ -69,6 +80,17 @@ describe("AdminService audit log", () => {
       ],
       nextCursor: "audit-1",
     })
+  })
+
+  it("shows the archived actor snapshot after restoring an audit entry", async () => {
+    const { prisma, service } = dependencies()
+    prisma.auditLog.findUnique.mockResolvedValue(
+      auditEntry({ actorUsernameSnapshot: "original-admin" })
+    )
+
+    const result = await service.getAuditLog("audit-1")
+
+    expect(result.data.adminUsername).toBe("original-admin")
   })
 
   it("returns before and after snapshots for one entry", async () => {

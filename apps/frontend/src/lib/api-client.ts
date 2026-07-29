@@ -86,6 +86,23 @@ export async function apiFormCommand<T>(
   return readApiResponse<T>(response)
 }
 
+export async function apiDownload(path: string) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
+    headers: { Accept: "application/zip" },
+  })
+  if (!response.ok) {
+    await readApiResponse<never>(response)
+  }
+  const disposition = response.headers.get("content-disposition")
+  const fileName =
+    disposition?.match(/filename="([^"]+)"/i)?.[1] ?? "mcsr-sabinsk-archive.zip"
+  return {
+    blob: await response.blob(),
+    fileName,
+  }
+}
+
 async function readApiResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response

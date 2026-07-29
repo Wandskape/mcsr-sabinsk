@@ -43,6 +43,7 @@ async function bootstrap() {
   app.enableCors({
     origin: config.getOrThrow<string>("FRONTEND_ORIGIN"),
     credentials: true,
+    exposedHeaders: ["content-disposition"],
   })
   app.use((request: Request, response: Response, next: NextFunction) => {
     const startedAt = process.hrtime.bigint()

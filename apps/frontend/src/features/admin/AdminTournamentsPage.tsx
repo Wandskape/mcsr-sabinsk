@@ -4,6 +4,8 @@ import type {
   AdminTournament,
   CompletionReadiness,
   CoverUpload,
+  TournamentArchiveImportResult,
+  TournamentArchivePreview,
   TournamentStatus,
 } from "@mcsr-sabinsk/shared"
 import { TOURNAMENT_STATUS_LABELS } from "@mcsr-sabinsk/shared"
@@ -11,6 +13,8 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleAlert,
+  Download,
+  FileArchive,
   ImagePlus,
   LoaderCircle,
   Plus,
@@ -26,6 +30,7 @@ import { z } from "zod"
 import {
   ApiError,
   apiCommand,
+  apiDownload,
   apiFormCommand,
   apiRequest,
 } from "@/lib/api-client"
@@ -201,6 +206,9 @@ export function AdminTournamentsPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [completionReadiness, setCompletionReadiness] =
     useState<CompletionReadiness | null>(null)
+  const [archiveFile, setArchiveFile] = useState<File | null>(null)
+  const [archivePreview, setArchivePreview] =
+    useState<TournamentArchivePreview | null>(null)
 
   const selected = useMemo(
     () =>
@@ -459,6 +467,88 @@ export function AdminTournamentsPage() {
     }
   }
 
+  async function downloadArchive(path: string, action: string) {
+    setBusyAction(action)
+    setError(null)
+    setNotice(null)
+    try {
+      const download = await apiDownload(path)
+      const url = URL.createObjectURL(download.blob)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = download.fileName
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      setNotice("Архив сформирован и загружен.")
+    } catch (reason) {
+      handleLoadError(reason)
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function previewArchive(file: File) {
+    if (!session) return
+    setBusyAction("archive-preview")
+    setError(null)
+    setNotice(null)
+    setArchivePreview(null)
+    setArchiveFile(file)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      setArchivePreview(
+        await apiFormCommand<TournamentArchivePreview>(
+          "/admin/tournament-archives/preview",
+          formData,
+          session.csrfToken
+        )
+      )
+    } catch (reason) {
+      setArchiveFile(null)
+      handleLoadError(reason)
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function importArchive() {
+    if (!session || !archiveFile || !archivePreview) return
+    setBusyAction("archive-import")
+    setError(null)
+    try {
+      const formData = new FormData()
+      formData.append("file", archiveFile)
+      formData.append("archiveChecksum", archivePreview.archiveChecksum)
+      const result = await apiFormCommand<TournamentArchiveImportResult>(
+        "/admin/tournament-archives/import",
+        formData,
+        session.csrfToken
+      )
+      const loadedTournaments =
+        await apiRequest<AdminTournament[]>("/admin/tournaments")
+      setTournaments(loadedTournaments)
+      const firstImported = loadedTournaments.find((tournament) =>
+        result.importedTournamentIds.includes(tournament.id)
+      )
+      if (firstImported) {
+        setSelectedId(firstImported.id)
+        setIsCreating(false)
+      }
+      setArchivePreview(null)
+      setArchiveFile(null)
+      setNotice(
+        `Импортировано: ${result.importedCount}. Уже существовало: ${result.skippedCount}.`
+      )
+    } catch (reason) {
+      handleLoadError(reason)
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
   if (loading || !session) {
     return (
       <div className="admin-state">
@@ -475,20 +565,57 @@ export function AdminTournamentsPage() {
           <p className="admin-kicker">Управление</p>
           <h1>Турниры</h1>
         </div>
-        <button
-          className="admin-primary-action"
-          type="button"
-          onClick={() => {
-            setIsCreating(true)
-            setSelectedId(null)
-            setCompletionReadiness(null)
-            setError(null)
-            setNotice(null)
-          }}
-        >
-          <Plus size={18} aria-hidden="true" />
-          Новый турнир
-        </button>
+        <div className="admin-page-actions">
+          <button
+            type="button"
+            disabled={busyAction !== null || tournaments.length === 0}
+            onClick={() =>
+              void downloadArchive(
+                "/admin/tournament-archives/export-all",
+                "archive-export-all"
+              )
+            }
+          >
+            {busyAction === "archive-export-all" ? (
+              <LoaderCircle className="spin" size={18} aria-hidden="true" />
+            ) : (
+              <Download size={18} aria-hidden="true" />
+            )}
+            Экспортировать все
+          </button>
+          <label className="admin-file-action">
+            {busyAction === "archive-preview" ? (
+              <LoaderCircle className="spin" size={18} aria-hidden="true" />
+            ) : (
+              <FileArchive size={18} aria-hidden="true" />
+            )}
+            Импортировать
+            <input
+              type="file"
+              accept=".zip,application/zip"
+              disabled={busyAction !== null}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+                if (file) void previewArchive(file)
+                event.currentTarget.value = ""
+              }}
+            />
+          </label>
+          <button
+            className="admin-primary-action"
+            type="button"
+            onClick={() => {
+              setIsCreating(true)
+              setSelectedId(null)
+              setCompletionReadiness(null)
+              setError(null)
+              setNotice(null)
+            }}
+          >
+            <Plus size={18} aria-hidden="true" />
+            Новый турнир
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -712,6 +839,37 @@ export function AdminTournamentsPage() {
                 )}
               </section>
 
+              <section className="admin-editor-section admin-archive-section">
+                <div>
+                  <h3>Архив турнира</h3>
+                  <p>
+                    Данные, история импортов, аудит, плей-офф и обложка в одном
+                    ZIP.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busyAction !== null}
+                  onClick={() =>
+                    void downloadArchive(
+                      `/admin/tournament-archives/${selected.id}/export`,
+                      "archive-export-one"
+                    )
+                  }
+                >
+                  {busyAction === "archive-export-one" ? (
+                    <LoaderCircle
+                      className="spin"
+                      size={17}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Download size={17} aria-hidden="true" />
+                  )}
+                  Экспортировать
+                </button>
+              </section>
+
               <section className="admin-editor-section">
                 <div>
                   <h3>Статус турнира</h3>
@@ -876,6 +1034,95 @@ export function AdminTournamentsPage() {
                   <CheckCircle2 size={18} aria-hidden="true" />
                 )}
                 Подтвердить завершение
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {archivePreview && archiveFile && (
+        <div
+          className="admin-completion-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setArchivePreview(null)
+              setArchiveFile(null)
+            }
+          }}
+        >
+          <section
+            className="admin-completion-dialog admin-archive-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="archive-preview-title"
+          >
+            <div className="admin-panel-heading">
+              <div>
+                <p className="admin-kicker">Проверка архива</p>
+                <h2 id="archive-preview-title">{archiveFile.name}</h2>
+              </div>
+              <FileArchive size={28} aria-hidden="true" />
+            </div>
+            <div className="admin-archive-stats">
+              <span>
+                <strong>{archivePreview.counts.tournaments}</strong> турниров
+              </span>
+              <span>
+                <strong>{archivePreview.counts.participants}</strong> участников
+              </span>
+              <span>
+                <strong>{archivePreview.counts.qualificationMatches}</strong>{" "}
+                матчей
+              </span>
+              <span>
+                <strong>{archivePreview.counts.covers}</strong> обложек
+              </span>
+              <span>
+                <strong>{archivePreview.counts.auditEntries}</strong> записей
+                аудита
+              </span>
+            </div>
+            <ul className="admin-archive-preview-list">
+              {archivePreview.tournaments.map((tournament) => (
+                <li key={tournament.id} data-status={tournament.importStatus}>
+                  <span>
+                    <strong>{tournament.name}</strong>
+                    <small>{tournament.slug}</small>
+                  </span>
+                  <em>
+                    {tournament.importStatus === "READY"
+                      ? "Готов"
+                      : tournament.importStatus === "ALREADY_IMPORTED"
+                        ? "Уже импортирован"
+                        : "Конфликт"}
+                  </em>
+                  {tournament.message && <p>{tournament.message}</p>}
+                </li>
+              ))}
+            </ul>
+            <div className="admin-completion-actions">
+              <button
+                type="button"
+                disabled={busyAction !== null}
+                onClick={() => {
+                  setArchivePreview(null)
+                  setArchiveFile(null)
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                className="admin-primary-action"
+                type="button"
+                disabled={!archivePreview.canImport || busyAction !== null}
+                onClick={() => void importArchive()}
+              >
+                {busyAction === "archive-import" ? (
+                  <LoaderCircle className="spin" size={18} aria-hidden="true" />
+                ) : (
+                  <Upload size={18} aria-hidden="true" />
+                )}
+                Подтвердить импорт
               </button>
             </div>
           </section>

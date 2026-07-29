@@ -13,6 +13,7 @@ import { PlayoffsModule } from "./modules/playoffs/playoffs.module.js"
 import { PrismaModule } from "./modules/prisma/prisma.module.js"
 import { QualificationModule } from "./modules/qualification/qualification.module.js"
 import { TournamentsModule } from "./modules/tournaments/tournaments.module.js"
+import { TournamentArchivesModule } from "./modules/tournament-archives/tournament-archives.module.js"
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TournamentsModule } from "./modules/tournaments/tournaments.module.js"
     PlayoffsModule,
     HealthModule,
     TournamentsModule,
+    TournamentArchivesModule,
     QualificationModule,
   ],
 })

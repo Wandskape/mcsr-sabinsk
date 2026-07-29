@@ -263,18 +263,19 @@ model PlayoffMatch {
 }
 
 model AuditLog {
-  id          String    @id @default(uuid()) @db.Uuid
-  adminUserId String    @db.Uuid
-  action      String    @db.VarChar(120)
-  entityType  String    @db.VarChar(120)
-  entityId    String    @db.VarChar(140)
-  before      Json?
-  after       Json?
-  reason      String?   @db.Text
-  requestId   String    @db.VarChar(100)
-  ipHash      String?
-  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
-  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+  id                    String    @id @default(uuid()) @db.Uuid
+  adminUserId           String    @db.Uuid
+  actorUsernameSnapshot String?   @db.VarChar(64)
+  action                String    @db.VarChar(120)
+  entityType            String    @db.VarChar(120)
+  entityId              String    @db.VarChar(140)
+  before                Json?
+  after                 Json?
+  reason                String?   @db.Text
+  requestId             String    @db.VarChar(100)
+  ipHash                String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  adminUser             AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
 
   @@index([createdAt])
   @@index([action])

@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto"
 
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
   PutBucketPolicyCommand,
@@ -81,9 +83,7 @@ export class MediaService {
   }
 
   async assertObjectExists(objectKey: string) {
-    if (!objectKey.startsWith("covers/")) {
-      throw new BadRequestException("Недопустимый ключ объекта.")
-    }
+    this.assertCoverKey(objectKey)
     try {
       await this.client.send(
         new HeadObjectCommand({
@@ -94,6 +94,68 @@ export class MediaService {
     } catch {
       throw new NotFoundException("Загруженная обложка не найдена.")
     }
+  }
+
+  async downloadCover(objectKey: string) {
+    this.assertCoverKey(objectKey)
+    try {
+      const response = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+        })
+      )
+      if (!response.Body) {
+        throw new Error("Empty S3 response body")
+      }
+      return {
+        buffer: Buffer.from(await response.Body.transformToByteArray()),
+        mimeType: response.ContentType ?? "application/octet-stream",
+      }
+    } catch {
+      throw new NotFoundException("Обложка турнира не найдена в хранилище.")
+    }
+  }
+
+  async storeImportedCover(input: {
+    tournamentId: string
+    extension: string
+    mimeType: string
+    buffer: Buffer
+  }) {
+    if (!/^[a-z0-9]+$/i.test(input.extension)) {
+      throw new BadRequestException("Недопустимое расширение обложки.")
+    }
+    await this.ensureBucket()
+    const objectKey = `covers/imported/${input.tournamentId}.${input.extension.toLowerCase()}`
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: objectKey,
+        Body: input.buffer,
+        ContentLength: input.buffer.length,
+        ContentType: input.mimeType,
+        CacheControl: "public, max-age=31536000, immutable",
+      })
+    )
+    return {
+      objectKey,
+      publicUrl: this.publicUrlFor(objectKey),
+    }
+  }
+
+  async deleteImportedCover(objectKey: string) {
+    if (!objectKey.startsWith("covers/imported/") || objectKey.includes("..")) {
+      throw new BadRequestException(
+        "Недопустимый ключ импортированной обложки."
+      )
+    }
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: objectKey,
+      })
+    )
   }
 
   publicUrlFor(objectKey: string) {
@@ -135,6 +197,12 @@ export class MediaService {
           }),
         })
       )
+    }
+  }
+
+  private assertCoverKey(objectKey: string) {
+    if (!objectKey.startsWith("covers/") || objectKey.includes("..")) {
+      throw new BadRequestException("Недопустимый ключ объекта.")
     }
   }
 

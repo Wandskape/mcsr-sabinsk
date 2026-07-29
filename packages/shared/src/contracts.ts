@@ -101,6 +101,42 @@ export interface CoverUpload {
   publicUrl: string
 }
 
+export type TournamentArchiveItemStatus =
+  "READY" | "ALREADY_IMPORTED" | "CONFLICT"
+
+export interface TournamentArchivePreviewItem {
+  id: string
+  name: string
+  slug: string
+  status: TournamentStatus
+  importStatus: TournamentArchiveItemStatus
+  message: string | null
+}
+
+export interface TournamentArchivePreview {
+  archiveVersion: number
+  archiveChecksum: string
+  exportedAt: string
+  fileSizeBytes: number
+  counts: {
+    tournaments: number
+    participants: number
+    qualificationMatches: number
+    playoffBrackets: number
+    covers: number
+    auditEntries: number
+  }
+  tournaments: TournamentArchivePreviewItem[]
+  canImport: boolean
+}
+
+export interface TournamentArchiveImportResult {
+  importedTournamentIds: string[]
+  skippedTournamentIds: string[]
+  importedCount: number
+  skippedCount: number
+}
+
 export interface RankedUserProfile {
   uuid: string
   nickname: string
