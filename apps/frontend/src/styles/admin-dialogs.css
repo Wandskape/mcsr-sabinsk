@@ -1,0 +1,198 @@
+.admin-completion-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  padding: 1.5rem;
+  place-items: center;
+  background: rgb(3 7 9 / 78%);
+  backdrop-filter: blur(5px);
+}
+
+.admin-completion-dialog {
+  width: min(100%, 43rem);
+  padding: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 45%);
+  background: #11191c;
+}
+
+.admin-completion-dialog h2 {
+  margin: 0.2rem 0 0;
+  font-size: clamp(1.2rem, 3vw, 1.55rem);
+}
+
+.admin-completion-ok {
+  color: var(--primary);
+}
+
+.admin-completion-blocked {
+  color: #ff9e95;
+}
+
+.admin-completion-intro {
+  margin: 0.8rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.admin-completion-checks {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-completion-checks li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: rgb(255 255 255 / 2%);
+}
+
+.admin-completion-checks li[data-result="passed"] > svg {
+  color: var(--primary);
+}
+
+.admin-completion-checks li[data-result="blocked"] {
+  border-color: rgb(255 110 100 / 35%);
+  background: rgb(255 110 100 / 6%);
+}
+
+.admin-completion-checks li[data-result="blocked"] > svg {
+  color: #ff9e95;
+}
+
+.admin-completion-checks li[data-result="warn"] {
+  border-color: rgb(230 187 93 / 30%);
+  background: rgb(230 187 93 / 5%);
+}
+
+.admin-completion-checks li[data-result="warn"] > svg {
+  color: #e6bb5d;
+}
+
+.admin-completion-checks span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-completion-checks strong {
+  font-size: 0.82rem;
+}
+
+.admin-completion-checks small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.admin-completion-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+
+.admin-completion-actions button {
+  display: inline-flex;
+  min-height: 2.65rem;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  color: var(--foreground);
+  background: var(--surface-raised);
+}
+
+.admin-state {
+  display: grid;
+  min-height: 100vh;
+  gap: 0.75rem;
+  place-content: center;
+  justify-items: center;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.admin-state h1 {
+  color: var(--foreground);
+}
+
+.admin-state p {
+  max-width: 30rem;
+  margin: 0;
+}
+
+.admin-state button {
+  margin-top: 0.75rem;
+  padding: 0 1rem;
+}
+
+.admin-primary-action,
+.admin-inline-actions button,
+.admin-file-action,
+.admin-cover-preview button,
+.admin-danger-zone button {
+  display: inline-flex;
+  min-height: 2.65rem;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--surface-raised);
+  color: var(--foreground);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.admin-primary-action {
+  border-color: transparent;
+  background: var(--primary);
+  color: #07130e;
+}
+
+.admin-primary-action:disabled,
+.admin-inline-actions button:disabled,
+.admin-file-action:has(input:disabled),
+.admin-cover-preview button:disabled,
+.admin-danger-zone button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.admin-alert {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  font-size: 0.86rem;
+}
+
+.admin-alert-error {
+  border-color: rgb(242 139 130 / 25%);
+  background: rgb(242 139 130 / 8%);
+  color: #ffb4ad;
+}
+
+.admin-alert-success {
+  border-color: rgb(79 189 145 / 28%);
+  background: var(--primary-muted);
+  color: #9be4c6;
+}

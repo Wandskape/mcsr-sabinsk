@@ -1,0 +1,143 @@
+@media (max-width: 1100px) {
+  .admin-audit-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-audit-details {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-sidebar-footer small,
+  .admin-sidebar-footer strong {
+    display: none;
+  }
+
+  .admin-sidebar nav {
+    display: flex;
+  }
+
+  .admin-sidebar-footer {
+    position: absolute;
+    top: 1.65rem;
+    right: 1rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .admin-sidebar-footer button {
+    margin: 0;
+  }
+
+  .admin-main {
+    padding-top: 1.75rem;
+  }
+
+  .admin-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-audit-filters,
+  .admin-audit-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-audit-details {
+    padding: 1rem;
+  }
+
+  .admin-completion-backdrop {
+    padding: 0.75rem;
+  }
+
+  .admin-completion-dialog {
+    padding: 1rem;
+  }
+
+  .admin-completion-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .admin-completion-actions button {
+    width: 100%;
+  }
+
+  .admin-page-header {
+    align-items: flex-start;
+  }
+
+  .admin-page-header > a {
+    max-width: 8.5rem;
+    text-align: center;
+  }
+
+  .admin-tournament-layout,
+  .admin-form-grid,
+  .admin-limit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tournament-list {
+    grid-auto-columns: minmax(14rem, 75vw);
+    grid-auto-flow: column;
+    overflow-x: auto;
+  }
+
+  .admin-editor-section,
+  .admin-danger-zone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-inline-actions {
+    justify-content: flex-start;
+  }
+
+  .admin-roster-add {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-qualification-import {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-qualification-matches li {
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+  }
+
+  .admin-qualification-counts,
+  .admin-qualification-completion-limit,
+  .admin-qualification-winner,
+  .admin-qualification-matches li > button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .admin-roster-preview li,
+  .admin-roster-list li {
+    grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+  }
+
+  .admin-roster-list li {
+    grid-template-columns: 2.4rem minmax(0, 1fr) auto auto;
+  }
+
+  .admin-roster-list li > em {
+    display: none;
+  }
+}
