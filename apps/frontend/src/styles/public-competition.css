@@ -84,6 +84,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+.standings-eliminated-divider {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 7px 0 4px;
+  color: #a66b6b;
+  font-family: "Minecraft", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.standings-eliminated-divider::before,
+.standings-eliminated-divider::after {
+  flex: 1;
+  border-top: 1px dashed rgb(207 93 93 / 35%);
+  content: "";
+}
+
+.standing-row-eliminated .player-name {
+  color: #e06f6f;
+}
+
 .match-row {
   gap: 10px;
   align-items: center;

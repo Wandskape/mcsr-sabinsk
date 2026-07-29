@@ -44,6 +44,7 @@ import {
   PHASE_PRESENTATION,
   phaseLabel,
 } from "./qualification-presentation"
+import { buildStandingsPresentation } from "./standings-presentation"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -513,7 +514,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="section-title">{children}</h2>
 }
 
-function StandingsTable({
+export function StandingsTable({
   standings,
   loading,
   error,
@@ -538,30 +539,47 @@ function StandingsTable({
 
   return (
     <div className="standings-list">
-      {standings.map((standing) => (
-        <button
-          type="button"
-          key={standing.registrationId}
-          aria-pressed={
-            selection?.type === "participant" &&
-            selection.id === standing.registrationId
-          }
-          aria-controls="qualification-details"
-          onClick={() => onSelect(standing.registrationId)}
-          className={cn(
-            "standing-row",
-            selection?.type === "participant" &&
-              selection.id === standing.registrationId &&
-              "row-selected"
-          )}
-        >
-          <span className="rank">{showRanks ? standing.rank : "—"}</span>
-          <span className="player-name">{standing.nickname}</span>
-          <span className="points">
-            {showRanks ? `${standing.points} очк.` : "Ожидает старта"}
-          </span>
-        </button>
-      ))}
+      {buildStandingsPresentation(standings).map((row) => {
+        if (row.type === "eliminated-divider") {
+          return (
+            <div
+              key={row.key}
+              className="standings-eliminated-divider"
+              role="separator"
+              aria-label="Выбывшие участники"
+            >
+              <span>ВЫБЫЛИ</span>
+            </div>
+          )
+        }
+
+        const standing = row.standing
+        return (
+          <button
+            type="button"
+            key={row.key}
+            aria-pressed={
+              selection?.type === "participant" &&
+              selection.id === standing.registrationId
+            }
+            aria-controls="qualification-details"
+            onClick={() => onSelect(standing.registrationId)}
+            className={cn(
+              "standing-row",
+              standing.eliminated && "standing-row-eliminated",
+              selection?.type === "participant" &&
+                selection.id === standing.registrationId &&
+                "row-selected"
+            )}
+          >
+            <span className="rank">{showRanks ? standing.rank : "—"}</span>
+            <span className="player-name">{standing.nickname}</span>
+            <span className="points">
+              {showRanks ? `${standing.points} очк.` : "Ожидает старта"}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }

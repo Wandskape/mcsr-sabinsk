@@ -186,6 +186,7 @@ export interface Standing {
   playedMatches: number
   dnfCount: number
   missedCount: number
+  eliminated: boolean
 }
 
 export interface StandingsResponse {

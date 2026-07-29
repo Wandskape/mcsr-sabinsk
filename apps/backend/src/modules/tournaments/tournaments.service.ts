@@ -8,6 +8,7 @@ import type {
 import type { DivisionType, Prisma } from "../../generated/prisma/client.js"
 import { TournamentStatus } from "../../generated/prisma/client.js"
 import { PrismaService } from "../prisma/prisma.service.js"
+import { calculateQualificationStandings } from "../qualification/qualification-elimination.js"
 import { isDivisionPublic } from "./division-visibility.js"
 import type { ListTournamentsQueryDto } from "./dto/list-tournaments-query.dto.js"
 import { selectDefaultTournament } from "./tournament-selection.js"
@@ -93,31 +94,67 @@ export class TournamentsService {
       where: { divisionId: division.id },
       include: { participant: true },
     })
-    registrations.sort((left, right) => {
-      const pointsDifference =
-        right.qualificationPoints - left.qualificationPoints
-      if (pointsDifference !== 0) return pointsDifference
-
-      const leftAverage = left.averageTimeMs ?? Number.POSITIVE_INFINITY
-      const rightAverage = right.averageTimeMs ?? Number.POSITIVE_INFINITY
-      if (leftAverage !== rightAverage) return leftAverage - rightAverage
-
-      return left.nicknameSnapshot.localeCompare(right.nicknameSnapshot, "ru", {
-        sensitivity: "base",
-      })
+    const matches = await this.prisma.qualificationMatch.findMany({
+      where: { divisionId: division.id, activeImportId: { not: null } },
+      orderBy: { matchNumber: "asc" },
+      select: {
+        matchNumber: true,
+        activeImport: {
+          select: {
+            results: {
+              select: {
+                registrationId: true,
+                points: true,
+                effectiveTimeMs: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    const registrationById = new Map(
+      registrations.map((registration) => [registration.id, registration])
+    )
+    const calculated = calculateQualificationStandings({
+      divisionType: division.type,
+      timeLimitMs: division.timeLimitMs,
+      registrations: registrations.map((registration) => ({
+        id: registration.id,
+        nickname: registration.nicknameSnapshot,
+      })),
+      matches: matches.flatMap((match) =>
+        match.activeImport
+          ? [
+              {
+                matchNumber: match.matchNumber,
+                results: match.activeImport.results,
+              },
+            ]
+          : []
+      ),
     })
 
-    const standings: Standing[] = registrations.map((registration, index) => ({
-      rank: index + 1,
-      registrationId: registration.id,
-      participantUuid: registration.participant.rankedUuid,
-      nickname: registration.nicknameSnapshot,
-      points: registration.qualificationPoints,
-      averageTimeMs: registration.averageTimeMs,
-      playedMatches: registration.playedMatches,
-      dnfCount: registration.dnfCount,
-      missedCount: registration.missedCount,
-    }))
+    const standings: Standing[] = calculated.map((standing, index) => {
+      const registration = registrationById.get(standing.registrationId)
+      if (!registration) {
+        throw new Error(
+          "Calculated standing references an unknown registration"
+        )
+      }
+      return {
+        rank: index + 1,
+        registrationId: registration.id,
+        participantUuid: registration.participant.rankedUuid,
+        nickname: registration.nicknameSnapshot,
+        points: standing.points,
+        averageTimeMs: standing.averageTimeMs,
+        playedMatches: standing.playedMatches,
+        dnfCount: standing.dnfCount,
+        missedCount: standing.missedCount,
+        eliminated: standing.eliminated,
+      }
+    })
 
     return {
       data: {

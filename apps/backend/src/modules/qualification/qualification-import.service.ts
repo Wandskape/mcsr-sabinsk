@@ -35,6 +35,11 @@ import {
   type QualificationPreviewTokenPayload,
   verifyQualificationPreviewToken,
 } from "./qualification-preview-token.js"
+import {
+  calculateQualificationStandings,
+  eligibleRegistrationIdsBeforeMatch,
+  type QualificationEliminationMatch,
+} from "./qualification-elimination.js"
 
 const divisionImportInclude = {
   tournament: true,
@@ -130,10 +135,12 @@ export class QualificationImportService {
       )
     }
 
+    const matchNumber = await this.getNextMatchNumber(divisionId)
     const prepared = await this.prepare(
       division,
       rankedMatchId,
-      completionLimit
+      completionLimit,
+      matchNumber
     )
     return {
       data: this.createPreview(division, prepared, null, true),
@@ -158,10 +165,12 @@ export class QualificationImportService {
       completionLimit: input.completionLimit,
       matchId: null,
     })
+    const matchNumber = await this.getNextMatchNumber(divisionId)
     const prepared = await this.prepare(
       division,
       input.rankedMatchId,
-      input.completionLimit
+      input.completionLimit,
+      matchNumber
     )
     this.assertFreshPreview(token, prepared.payloadHash)
 
@@ -188,10 +197,16 @@ export class QualificationImportService {
         select: { matchNumber: true },
         orderBy: { matchNumber: "desc" },
       })
+      const currentMatchNumber = (lastMatch?.matchNumber ?? 0) + 1
+      if (currentMatchNumber !== matchNumber) {
+        throw new ConflictException(
+          "Состав матчей дивизиона изменился. Получите preview заново."
+        )
+      }
       const match = await transaction.qualificationMatch.create({
         data: {
           divisionId,
-          matchNumber: (lastMatch?.matchNumber ?? 0) + 1,
+          matchNumber: currentMatchNumber,
           rankedMatchId: input.rankedMatchId,
           completionLimit: input.completionLimit,
           rankedPlayedAt: prepared.calculation.playedAt,
@@ -259,7 +274,8 @@ export class QualificationImportService {
     const prepared = await this.prepare(
       division,
       match.rankedMatchId,
-      completionLimit
+      completionLimit,
+      match.matchNumber
     )
     const changed =
       prepared.payloadHash !== match.activeImport?.payloadHash ||
@@ -344,7 +360,8 @@ export class QualificationImportService {
     const prepared = await this.prepare(
       match.division,
       match.rankedMatchId,
-      token.completionLimit
+      token.completionLimit,
+      match.matchNumber
     )
     this.assertFreshPreview(token, prepared.payloadHash)
     const completionLimitChanged =
@@ -438,7 +455,8 @@ export class QualificationImportService {
   private async prepare(
     division: DivisionImportScope,
     rankedMatchId: string,
-    completionLimit: QualificationCompletionLimit
+    completionLimit: QualificationCompletionLimit,
+    matchNumber: number
   ): Promise<PreparedImport> {
     const fetched = await this.ranked.getMatch(rankedMatchId)
     if (!fetched) {
@@ -449,13 +467,19 @@ export class QualificationImportService {
         "Ranked API вернул матч с другим идентификатором."
       )
     }
+    const eligibleIds = await this.getEligibleRegistrationIds(
+      division,
+      matchNumber
+    )
     const calculation = calculateQualificationMatch(
       fetched.payload,
-      division.registrations.map((registration) => ({
-        id: registration.id,
-        participantUuid: registration.participant.rankedUuid,
-        nickname: registration.nicknameSnapshot,
-      })),
+      division.registrations
+        .filter((registration) => eligibleIds.has(registration.id))
+        .map((registration) => ({
+          id: registration.id,
+          participantUuid: registration.participant.rankedUuid,
+          nickname: registration.nicknameSnapshot,
+        })),
       division.timeLimitMs,
       completionLimit
     )
@@ -550,53 +574,132 @@ export class QualificationImportService {
     transaction: Prisma.TransactionClient,
     divisionId: string
   ) {
+    const division = await transaction.division.findUniqueOrThrow({
+      where: { id: divisionId },
+      select: { type: true, timeLimitMs: true },
+    })
     const registrations = await transaction.tournamentRegistration.findMany({
       where: { divisionId },
-      include: {
-        qualificationResults: {
-          include: {
-            qualificationMatch: {
-              select: { activeImportId: true },
+      select: { id: true, nicknameSnapshot: true },
+    })
+    const matches = await transaction.qualificationMatch.findMany({
+      where: { divisionId, activeImportId: { not: null } },
+      orderBy: { matchNumber: "asc" },
+      select: {
+        matchNumber: true,
+        activeImport: {
+          select: {
+            results: {
+              select: {
+                registrationId: true,
+                points: true,
+                effectiveTimeMs: true,
+                status: true,
+              },
             },
           },
         },
       },
     })
+    const calculated = calculateQualificationStandings({
+      divisionType: division.type,
+      timeLimitMs: division.timeLimitMs,
+      registrations: registrations.map((registration) => ({
+        id: registration.id,
+        nickname: registration.nicknameSnapshot,
+      })),
+      matches: this.toEliminationMatches(matches),
+    })
+
     await Promise.all(
-      registrations.map((registration) => {
-        const active = registration.qualificationResults.filter(
-          (result) =>
-            result.importId === result.qualificationMatch.activeImportId
-        )
-        const effectiveTotal = active.reduce(
-          (sum, result) => sum + result.effectiveTimeMs,
-          0
-        )
+      calculated.map((standing) => {
         return transaction.tournamentRegistration.update({
-          where: { id: registration.id },
+          where: { id: standing.registrationId },
           data: {
-            qualificationPoints: active.reduce(
-              (sum, result) => sum + result.points,
-              0
-            ),
-            averageTimeMs:
-              active.length > 0
-                ? Math.round(effectiveTotal / active.length)
-                : null,
-            playedMatches: active.filter(
-              (result) => result.status !== QualificationResultStatus.MISSED
-            ).length,
-            dnfCount: active.filter(
-              (result) => result.status === QualificationResultStatus.DNF
-            ).length,
-            missedCount: active.filter(
-              (result) => result.status === QualificationResultStatus.MISSED
-            ).length,
+            qualificationPoints: standing.points,
+            averageTimeMs: standing.averageTimeMs,
+            playedMatches: standing.playedMatches,
+            dnfCount: standing.dnfCount,
+            missedCount: standing.missedCount,
             version: { increment: 1 },
           },
         })
       })
     )
+  }
+
+  private async getEligibleRegistrationIds(
+    division: DivisionImportScope,
+    matchNumber: number
+  ) {
+    const matches = await this.prisma.qualificationMatch.findMany({
+      where: {
+        divisionId: division.id,
+        matchNumber: { lt: matchNumber },
+        activeImportId: { not: null },
+      },
+      orderBy: { matchNumber: "asc" },
+      select: {
+        matchNumber: true,
+        activeImport: {
+          select: {
+            results: {
+              select: {
+                registrationId: true,
+                points: true,
+                effectiveTimeMs: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    return eligibleRegistrationIdsBeforeMatch({
+      divisionType: division.type,
+      timeLimitMs: division.timeLimitMs,
+      registrations: division.registrations.map((registration) => ({
+        id: registration.id,
+        nickname: registration.nicknameSnapshot,
+      })),
+      matches: this.toEliminationMatches(matches),
+      matchNumber,
+    })
+  }
+
+  private toEliminationMatches(
+    matches: Array<{
+      matchNumber: number
+      activeImport: {
+        results: Array<{
+          registrationId: string
+          points: number
+          effectiveTimeMs: number
+          status: QualificationResultStatus
+        }>
+      } | null
+    }>
+  ): QualificationEliminationMatch[] {
+    return matches.flatMap((match) =>
+      match.activeImport
+        ? [
+            {
+              matchNumber: match.matchNumber,
+              results: match.activeImport.results,
+            },
+          ]
+        : []
+    )
+  }
+
+  private async getNextMatchNumber(divisionId: string) {
+    const lastMatch = await this.prisma.qualificationMatch.findFirst({
+      where: { divisionId },
+      select: { matchNumber: true },
+      orderBy: { matchNumber: "desc" },
+    })
+    return (lastMatch?.matchNumber ?? 0) + 1
   }
 
   private async findDivision(id: string) {
