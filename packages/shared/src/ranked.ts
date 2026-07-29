@@ -2,6 +2,48 @@ import { z } from "zod"
 
 import type { RankedUserProfile } from "./contracts.js"
 
+export const RANKED_SEED_TYPES = [
+  "BURIED_TREASURE",
+  "SHIPWRECK",
+  "VILLAGE",
+  "RUINED_PORTAL",
+  "DESERT_TEMPLE",
+] as const
+export type RankedSeedType = (typeof RANKED_SEED_TYPES)[number]
+
+export const RANKED_BASTION_TYPES = [
+  "BRIDGE",
+  "HOUSING",
+  "TREASURE",
+  "STABLES",
+] as const
+export type RankedBastionType = (typeof RANKED_BASTION_TYPES)[number]
+
+const RankedSeedTypeSchema = z.enum(RANKED_SEED_TYPES)
+const RankedBastionTypeSchema = z.enum(RANKED_BASTION_TYPES)
+
+function normalizeRankedEnvironmentValue<T extends string>(
+  value: unknown,
+  allowedValues: readonly T[]
+): T | null {
+  if (typeof value !== "string") return null
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_")
+  return allowedValues.includes(normalized as T) ? (normalized as T) : null
+}
+
+export function normalizeRankedSeedType(value: unknown): RankedSeedType | null {
+  return normalizeRankedEnvironmentValue(value, RANKED_SEED_TYPES)
+}
+
+export function normalizeRankedBastionType(
+  value: unknown
+): RankedBastionType | null {
+  return normalizeRankedEnvironmentValue(value, RANKED_BASTION_TYPES)
+}
+
 export const RankedUserEnvelopeSchema = z.object({
   status: z.literal("success"),
   data: z
@@ -64,6 +106,15 @@ export const RankedMatchEnvelopeSchema = z.object({
         })
       )
       .default([]),
+    seedType: z
+      .preprocess(normalizeRankedSeedType, RankedSeedTypeSchema.nullable())
+      .default(null),
+    bastionType: z
+      .preprocess(
+        normalizeRankedBastionType,
+        RankedBastionTypeSchema.nullable()
+      )
+      .default(null),
   }),
 })
 

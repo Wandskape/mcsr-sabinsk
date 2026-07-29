@@ -4,6 +4,7 @@ import type {
   QualificationResultStatus,
   TournamentStatus,
 } from "./enums.js"
+import type { RankedBastionType, RankedSeedType } from "./ranked.js"
 
 export interface ApiEnvelope<T> {
   data: T
@@ -248,6 +249,8 @@ export interface QualificationMatchDetails {
   id: string
   matchNumber: number
   rankedMatchId: string
+  seedType: RankedSeedType | null
+  bastionType: RankedBastionType | null
   completionLimit: QualificationCompletionLimit | null
   timeLimitMs: number
   results: QualificationMatchResult[]

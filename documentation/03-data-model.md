@@ -178,6 +178,8 @@ COMPLETED
 | `qualificationMatchId` | UUID | FK |
 | `importVersion` | int | unique с матчем |
 | `completionLimit` | int? | снимок правила этой версии; null только для legacy |
+| `seedType` | varchar(32)? | нормализованный тип мира из Ranked API |
+| `bastionType` | varchar(32)? | нормализованный тип бастиона из Ranked API |
 | `status` | ImportStatus | required |
 | `rawPayload` | jsonb | полный ответ Ranked API |
 | `payloadHash` | string | SHA-256 |

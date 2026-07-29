@@ -175,6 +175,8 @@ model QualificationMatchImport {
   qualificationMatchId String                @db.Uuid
   importVersion        Int
   completionLimit      Int?
+  seedType              String?               @db.VarChar(32)
+  bastionType           String?               @db.VarChar(32)
   status               ImportStatus
   rawPayload           Json
   payloadHash          String                @db.Char(64)

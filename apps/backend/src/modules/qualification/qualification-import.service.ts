@@ -15,6 +15,8 @@ import type {
   QualificationImportApplied,
   QualificationImportHistoryEntry,
   QualificationImportPreview,
+  RankedBastionType,
+  RankedSeedType,
 } from "@mcsr-sabinsk/shared"
 
 import type { Prisma } from "../../generated/prisma/client.js"
@@ -71,6 +73,8 @@ interface MutationContext {
 
 interface PreparedImport {
   calculation: ReturnType<typeof calculateQualificationMatch>
+  seedType: RankedSeedType | null
+  bastionType: RankedBastionType | null
   rawPayload: Prisma.InputJsonValue
   payloadHash: string
 }
@@ -492,7 +496,13 @@ export class QualificationImportService {
     const payloadHash = createHash("sha256")
       .update(canonicalJson(rawPayload))
       .digest("hex")
-    return { calculation, rawPayload, payloadHash }
+    return {
+      calculation,
+      seedType: fetched.payload.seedType,
+      bastionType: fetched.payload.bastionType,
+      rawPayload,
+      payloadHash,
+    }
   }
 
   private createPreview(
@@ -539,6 +549,8 @@ export class QualificationImportService {
         qualificationMatchId: matchId,
         importVersion,
         completionLimit: prepared.calculation.completionLimit,
+        seedType: prepared.seedType,
+        bastionType: prepared.bastionType,
         status: ImportStatus.PENDING,
         rawPayload: prepared.rawPayload,
         payloadHash: prepared.payloadHash,

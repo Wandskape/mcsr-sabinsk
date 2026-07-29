@@ -29,6 +29,8 @@ function matchPayload(): RankedMatchPayload {
   return {
     id: 123_456,
     date: 1_700_000_000,
+    seedType: null,
+    bastionType: null,
     players: [
       { uuid: UUIDS.alpha, nickname: "Alpha" },
       { uuid: UUIDS.bravo, nickname: "Bravo" },

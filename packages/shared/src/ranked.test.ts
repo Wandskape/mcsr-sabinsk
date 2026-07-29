@@ -63,6 +63,8 @@ describe("MCSR Ranked match contract", () => {
       spectators: [],
       completions: [],
       timelines: [],
+      seedType: null,
+      bastionType: null,
       players: [
         {
           uuid: "abcdef0123456789abcdef0123456789",
@@ -70,6 +72,38 @@ describe("MCSR Ranked match contract", () => {
         },
       ],
     })
+  })
+
+  it("normalizes known world and bastion types", () => {
+    const match = parseRankedMatchPayload({
+      status: "success",
+      data: {
+        id: 123_456,
+        date: 1_700_000_000,
+        players: [],
+        seedType: "ruined-portal",
+        bastionType: "STABLES",
+      },
+    })
+
+    expect(match.seedType).toBe("RUINED_PORTAL")
+    expect(match.bastionType).toBe("STABLES")
+  })
+
+  it("keeps unknown environment types from breaking an import", () => {
+    const match = parseRankedMatchPayload({
+      status: "success",
+      data: {
+        id: 123_456,
+        date: 1_700_000_000,
+        players: [],
+        seedType: "future_seed_type",
+        bastionType: "future_bastion_type",
+      },
+    })
+
+    expect(match.seedType).toBeNull()
+    expect(match.bastionType).toBeNull()
   })
 
   it("rejects negative result times", () => {

@@ -93,6 +93,8 @@ export class QualificationService {
         id: match.id,
         matchNumber: match.matchNumber,
         rankedMatchId: match.rankedMatchId,
+        seedType: match.activeImport.seedType,
+        bastionType: match.activeImport.bastionType,
         completionLimit:
           match.completionLimit as QualificationCompletionLimit | null,
         timeLimitMs: match.division.timeLimitMs,

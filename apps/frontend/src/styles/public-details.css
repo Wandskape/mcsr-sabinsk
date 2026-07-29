@@ -84,6 +84,45 @@
   width: 13px;
 }
 
+.match-environment {
+  display: flex;
+  min-width: 0;
+  gap: 12px 24px;
+  align-items: center;
+  margin-top: 16px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.match-environment-item {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  gap: 8px;
+  align-items: center;
+  color: var(--foreground);
+  font-family: "Minecraft", monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.match-environment-item img,
+.match-environment-unknown {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  image-rendering: pixelated;
+}
+
+.match-environment-unknown {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  background: rgb(255 255 255 / 3%);
+  place-items: center;
+}
+
 .participant-details > p {
   margin: 17px 0 25px;
   color: var(--muted);

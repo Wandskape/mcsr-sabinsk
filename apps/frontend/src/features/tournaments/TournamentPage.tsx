@@ -44,6 +44,10 @@ import {
   PHASE_PRESENTATION,
   phaseLabel,
 } from "./qualification-presentation"
+import {
+  bastionTypePresentation,
+  seedTypePresentation,
+} from "./match-environment"
 import { buildStandingsPresentation } from "./standings-presentation"
 
 const queryClient = new QueryClient({
@@ -750,12 +754,26 @@ function MatchDetails({ matchId }: { matchId: string }) {
   if (details.isError || !details.data) {
     return <EmptyState>Не удалось загрузить матч.</EmptyState>
   }
+  const seedType = seedTypePresentation(details.data.seedType)
+  const bastionType = bastionTypePresentation(details.data.bastionType)
 
   return (
     <div className="match-details">
       <div className="details-heading">
         <span>Матч {details.data.matchNumber}</span>
         <strong>Ranked #{details.data.rankedMatchId}</strong>
+      </div>
+      <div className="match-environment" aria-label="Параметры мира матча">
+        <MatchEnvironmentItem
+          kind="Тип мира"
+          label={seedType.label}
+          imageSrc={seedType.imageSrc}
+        />
+        <MatchEnvironmentItem
+          kind="Тип бастиона"
+          label={bastionType.label}
+          imageSrc={bastionType.imageSrc}
+        />
       </div>
       <div className="result-list">
         {details.data.results.map((result) => (
@@ -781,6 +799,30 @@ function MatchDetails({ matchId }: { matchId: string }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function MatchEnvironmentItem({
+  kind,
+  label,
+  imageSrc,
+}: {
+  kind: string
+  label: string
+  imageSrc: string | null
+}) {
+  return (
+    <div className="match-environment-item" title={`${kind}: ${label}`}>
+      {imageSrc ? (
+        <img src={imageSrc} width="24" height="24" alt="" />
+      ) : (
+        <span className="match-environment-unknown" aria-hidden="true">
+          ?
+        </span>
+      )}
+      <span>{label}</span>
+      <span className="sr-only">{kind}</span>
     </div>
   )
 }

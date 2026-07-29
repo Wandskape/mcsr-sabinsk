@@ -197,6 +197,8 @@ Response element:
     "id": "uuid",
     "matchNumber": 1,
     "rankedMatchId": "123456",
+    "seedType": "SHIPWRECK",
+    "bastionType": "STABLES",
     "completionLimit": 12,
     "timeLimitMs": 900000,
     "results": [
@@ -222,6 +224,10 @@ Response element:
   }
 }
 ```
+
+`seedType` и `bastionType` имеют значение `null`, если Ranked API не вернул
+метаданные либо прислал пока неизвестный вариант. Клиент в таком случае
+показывает «Неизвестно».
 
 ### `GET /registrations/:registrationId/qualification`
 
