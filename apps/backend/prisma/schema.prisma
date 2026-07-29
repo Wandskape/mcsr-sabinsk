@@ -45,6 +45,12 @@ enum PlayoffMatchStatus {
   COMPLETED
 }
 
+enum AnalyticsEventType {
+  TOURNAMENT_VIEW
+  PARTICIPANT_VIEW
+  MATCH_VIEW
+}
+
 model AdminUser {
   id                   String                     @id @default(uuid()) @db.Uuid
   username             String                     @unique @db.VarChar(64)
@@ -281,4 +287,23 @@ model AuditLog {
   @@index([action])
   @@index([entityType, entityId])
   @@index([requestId])
+}
+
+model AnalyticsEvent {
+  id         String             @id @default(uuid()) @db.Uuid
+  eventType  AnalyticsEventType
+  resourceId String             @db.Uuid
+  occurredAt DateTime           @default(now()) @db.Timestamptz(3)
+
+  @@index([occurredAt])
+  @@index([eventType, occurredAt])
+}
+
+model AnalyticsDailyMetric {
+  day       DateTime           @db.Date
+  eventType AnalyticsEventType
+  count     Int                @default(0)
+
+  @@id([day, eventType])
+  @@index([day])
 }

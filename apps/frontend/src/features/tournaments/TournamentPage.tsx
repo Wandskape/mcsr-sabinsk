@@ -25,6 +25,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { cn } from "@/lib/cn"
+import { recordAnalyticsView } from "@/lib/analytics"
 import { formatDuration, formatTournamentPeriod } from "@/lib/format"
 
 import {
@@ -185,6 +186,20 @@ function TournamentContent() {
     window.addEventListener("keydown", closeOnEscape)
     return () => window.removeEventListener("keydown", closeOnEscape)
   }, [division, selection, tournament, view])
+
+  useEffect(() => {
+    if (tournament) {
+      recordAnalyticsView("TOURNAMENT", tournament.id)
+    }
+  }, [tournament?.id])
+
+  useEffect(() => {
+    if (!selection) return
+    recordAnalyticsView(
+      selection.type === "participant" ? "PARTICIPANT" : "MATCH",
+      selection.id
+    )
+  }, [selection])
 
   const standings = useStandings(
     tournament?.slug ?? null,

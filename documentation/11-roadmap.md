@@ -201,6 +201,7 @@
 - CI quality и E2E gates;
 - безопасные backup и restore rehearsal;
 - переносимые ZIP-архивы одного или всех турниров с preview импорта;
+- обезличенные дневные счётчики публичных просмотров и административный график;
 - production dependency audit.
 
 ## Этап 10. Production release — следующий и последний этап MVP

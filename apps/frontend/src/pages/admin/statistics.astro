@@ -1,0 +1,11 @@
+---
+import { AdminStatisticsPage } from "@/features/admin/AdminStatisticsPage"
+import AdminLayout from "@/layouts/AdminLayout.astro"
+---
+
+<AdminLayout
+  title="Статистика — MCSR Сабинск"
+  description="Обезличенная статистика просмотров MCSR Сабинск."
+>
+  <AdminStatisticsPage client:load />
+</AdminLayout>

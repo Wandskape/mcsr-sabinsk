@@ -137,6 +137,31 @@ export interface TournamentArchiveImportResult {
   skippedCount: number
 }
 
+export type AnalyticsViewType = "TOURNAMENT" | "PARTICIPANT" | "MATCH"
+export type AnalyticsPeriod = "TODAY" | "7_DAYS" | "30_DAYS" | "ALL_TIME"
+
+export interface AnalyticsViewAccepted {
+  accepted: boolean
+}
+
+export interface AnalyticsDailyPoint {
+  date: string
+  tournamentViews: number
+  participantViews: number
+  matchViews: number
+}
+
+export interface AdminAnalytics {
+  period: AnalyticsPeriod
+  totals: {
+    tournamentViews: number
+    participantViews: number
+    matchViews: number
+  }
+  series: AnalyticsDailyPoint[]
+  rawEventRetentionDays: number
+}
+
 export interface RankedUserProfile {
   uuid: string
   nickname: string

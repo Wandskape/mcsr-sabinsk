@@ -4,6 +4,7 @@ import { ConfigModule } from "@nestjs/config"
 import { validateEnvironment } from "./config/environment.js"
 import { AdminModule } from "./modules/admin/admin.module.js"
 import { AdminTournamentsModule } from "./modules/admin-tournaments/admin-tournaments.module.js"
+import { AnalyticsModule } from "./modules/analytics/analytics.module.js"
 import { AuditModule } from "./modules/audit/audit.module.js"
 import { AuthModule } from "./modules/auth/auth.module.js"
 import { HealthModule } from "./modules/health/health.module.js"
@@ -28,6 +29,7 @@ import { TournamentArchivesModule } from "./modules/tournament-archives/tourname
     AdminModule,
     MediaModule,
     AdminTournamentsModule,
+    AnalyticsModule,
     ParticipantsModule,
     PlayoffsModule,
     HealthModule,

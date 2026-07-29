@@ -1,5 +1,6 @@
 import type { AdminSession } from "@mcsr-sabinsk/shared"
 import {
+  BarChart3,
   ClipboardList,
   LoaderCircle,
   LogOut,
@@ -13,7 +14,7 @@ import { apiCommand } from "@/lib/api-client"
 
 interface AdminShellProps {
   session: AdminSession
-  active: "overview" | "tournaments" | "audit"
+  active: "overview" | "tournaments" | "audit" | "statistics"
   children: ReactNode
 }
 
@@ -54,6 +55,13 @@ export function AdminShell({ session, active, children }: AdminShellProps) {
           <a className={active === "audit" ? "active" : ""} href="/admin/audit">
             <ScrollText size={18} aria-hidden="true" />
             Журнал аудита
+          </a>
+          <a
+            className={active === "statistics" ? "active" : ""}
+            href="/admin/statistics"
+          >
+            <BarChart3 size={18} aria-hidden="true" />
+            Статистика
           </a>
         </nav>
         <div className="admin-sidebar-footer">
