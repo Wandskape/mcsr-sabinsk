@@ -406,6 +406,14 @@
     box-shadow 120ms ease;
 }
 
+.public-playoff-participant:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.public-playoff-participant:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
 .public-playoff-participant.route-active {
   color: #d4ffea;
   background: rgb(61 196 143 / 24%);

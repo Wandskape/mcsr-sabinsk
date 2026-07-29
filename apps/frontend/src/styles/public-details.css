@@ -90,8 +90,15 @@
   gap: 12px 24px;
   align-items: center;
   margin-top: 16px;
+  padding-bottom: 16px;
   overflow-x: auto;
+  border-bottom: 1px solid var(--border);
   scrollbar-width: thin;
+}
+
+.match-details .details-heading {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .match-environment-item {

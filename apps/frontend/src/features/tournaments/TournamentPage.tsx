@@ -13,6 +13,7 @@ import { TOURNAMENT_STATUS_LABELS } from "@mcsr-sabinsk/shared"
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Crown,
   ExternalLink,
   ListOrdered,
@@ -27,7 +28,6 @@ import { cn } from "@/lib/cn"
 import { formatDuration, formatTournamentPeriod } from "@/lib/format"
 
 import {
-  useBackendHealth,
   useDefaultTournament,
   useMatchDetails,
   useMatches,
@@ -103,7 +103,6 @@ function updateUrl(
 }
 
 function TournamentContent() {
-  const health = useBackendHealth()
   const tournamentsQuery = useTournaments()
   const defaultTournamentQuery = useDefaultTournament(
     tournamentsQuery.data !== undefined &&
@@ -271,20 +270,6 @@ function TournamentContent() {
           <div className="eyebrow-row">
             <span className="eyebrow">Турниры</span>
             <StatusBadge status={tournament.status} />
-            <span
-              className={cn(
-                "backend-state",
-                health.isError && "backend-state-error"
-              )}
-              title={
-                health.isError
-                  ? "Backend недоступен"
-                  : "Соединение с backend установлено"
-              }
-            >
-              <span aria-hidden="true" />
-              API
-            </span>
           </div>
           <h1>{tournament.name}</h1>
           <p className="tournament-period">
@@ -459,43 +444,94 @@ function TournamentSelector({
   selected: PublicTournament
   onSelect: (tournament: PublicTournament) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
+  const selectorRef = useRef<HTMLDivElement>(null)
   const index = tournaments.findIndex(
     (tournament) => tournament.id === selected.id
   )
   const previous = tournaments[index + 1]
   const next = tournaments[index - 1]
 
+  useEffect(() => {
+    if (!expanded) return
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !selectorRef.current?.contains(event.target)
+      ) {
+        setExpanded(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExpanded(false)
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer)
+    document.addEventListener("keydown", closeOnEscape)
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer)
+      document.removeEventListener("keydown", closeOnEscape)
+    }
+  }, [expanded])
+
+  const tournamentLabel = (tournament: PublicTournament) =>
+    `${tournament.name} · ${formatTournamentPeriod(
+      tournament.startsAt,
+      tournament.endsAt
+    )}`
+
   return (
     <div className="tournament-selector">
       <button
         type="button"
+        className="tournament-selector-arrow"
         aria-label="Предыдущий турнир"
         disabled={!previous}
         onClick={() => previous && onSelect(previous)}
       >
         <ChevronLeft aria-hidden="true" />
       </button>
-      <label>
-        <span className="sr-only">Выберите турнир</span>
-        <select
-          value={selected.id}
-          onChange={(event) => {
-            const chosen = tournaments.find(
-              (tournament) => tournament.id === event.target.value
-            )
-            if (chosen) onSelect(chosen)
-          }}
+      <div className="tournament-select" ref={selectorRef}>
+        <button
+          type="button"
+          className="tournament-select-trigger"
+          aria-haspopup="listbox"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
         >
-          {tournaments.map((tournament) => (
-            <option key={tournament.id} value={tournament.id}>
-              {tournament.name} ·{" "}
-              {formatTournamentPeriod(tournament.startsAt, tournament.endsAt)}
-            </option>
-          ))}
-        </select>
-      </label>
+          <span>{tournamentLabel(selected)}</span>
+          <ChevronDown aria-hidden="true" />
+        </button>
+        {expanded && (
+          <div
+            className="tournament-select-menu"
+            role="listbox"
+            aria-label="Выберите турнир"
+          >
+            {tournaments.map((tournament) => (
+              <button
+                type="button"
+                role="option"
+                aria-selected={tournament.id === selected.id}
+                key={tournament.id}
+                title={tournamentLabel(tournament)}
+                onClick={() => {
+                  onSelect(tournament)
+                  setExpanded(false)
+                }}
+              >
+                {tournamentLabel(tournament)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <button
         type="button"
+        className="tournament-selector-arrow"
         aria-label="Следующий турнир"
         disabled={!next}
         onClick={() => next && onSelect(next)}
