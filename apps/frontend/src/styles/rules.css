@@ -720,6 +720,31 @@ mark {
   line-height: 1.65;
 }
 
+.developer-credit {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 9px 12px;
+  border: 1px solid rgb(79 189 145 / 20%);
+  border-radius: 10px;
+  background: rgb(79 189 145 / 7%);
+}
+
+.developer-credit span {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.developer-credit strong {
+  color: var(--primary);
+  font-family: "Minecraft", monospace;
+  font-size: 14px;
+}
+
 .broadcast-links {
   display: grid;
   gap: 8px;
