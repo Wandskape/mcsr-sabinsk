@@ -33,13 +33,36 @@
 }
 
 .nav-link {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
   color: var(--muted);
   font-size: 14px;
   text-decoration: none;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.main-nav {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.nav-link:hover {
+  color: var(--foreground);
+  background: rgb(255 255 255 / 3%);
 }
 
 .nav-link-active {
   color: var(--foreground);
+  border-color: var(--border);
+  background: var(--primary-muted);
 }
 
 .page-shell {

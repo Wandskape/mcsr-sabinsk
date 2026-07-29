@@ -10,9 +10,10 @@ import "@/styles/playoff.css"
 interface Props {
   title: string
   description: string
+  activePage?: "tournaments" | "rules"
 }
 
-const { title, description } = Astro.props
+const { title, description, activePage = "tournaments" } = Astro.props
 ---
 
 <!doctype html>
@@ -30,8 +31,24 @@ const { title, description } = Astro.props
         <span class="brand-mark">MS</span>
         <span class="brand-name">MCSR Сабинск</span>
       </a>
-      <nav aria-label="Основная навигация">
-        <a class="nav-link nav-link-active" href="/">Турниры</a>
+      <nav class="main-nav" aria-label="Основная навигация">
+        <a
+          class:list={["nav-link", activePage === "rules" && "nav-link-active"]}
+          href="/rules"
+          aria-current={activePage === "rules" ? "page" : undefined}
+        >
+          Правила
+        </a>
+        <a
+          class:list={[
+            "nav-link",
+            activePage === "tournaments" && "nav-link-active",
+          ]}
+          href="/"
+          aria-current={activePage === "tournaments" ? "page" : undefined}
+        >
+          Турниры
+        </a>
       </nav>
     </header>
     <main>

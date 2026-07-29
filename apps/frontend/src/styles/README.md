@@ -5,6 +5,7 @@ Styles are grouped by the layout or feature that owns them:
 - `global.css` — fonts, design tokens, reset, and global accessibility rules;
 - `admin-*.css` — admin shell and admin-only features;
 - `public-*.css` — public tournament page features;
+- `rules.css` — standalone public rules page;
 - `playoff.css` — bracket styles shared by public and admin views.
 
 `MainLayout.astro` imports only global, public, and playoff styles.

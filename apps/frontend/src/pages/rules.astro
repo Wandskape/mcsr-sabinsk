@@ -1,0 +1,385 @@
+---
+import MainLayout from "@/layouts/MainLayout.astro"
+import "@/styles/rules.css"
+
+const divisions = [
+  {
+    id: "beginner",
+    name: "Новички",
+    description: "Спокойный темп и пять квалификационных матчей.",
+    timeLimit: "50 минут",
+    matchCount: 5,
+    completions: [8, 8, 8, 6, 4],
+    eliminations: [
+      "После матча 3 — выбывают участники без очков",
+      "После матча 4 — остаётся топ-8",
+      "После матча 5 — остаётся топ-4",
+    ],
+    note: "Только в этом дивизионе перед стартом может проводиться seed find.",
+    tone: "mint",
+  },
+  {
+    id: "experienced",
+    name: "Опытные",
+    description: "Восемь матчей с постепенным сокращением состава.",
+    timeLimit: "20 минут",
+    matchCount: 8,
+    completions: [12, 12, 12, 10, 8, 8, 6, 4],
+    eliminations: [
+      "После матча 3 — выбывают участники без очков",
+      "После матча 5 — остаётся топ-8",
+      "После матча 7 — остаётся топ-6",
+      "После матча 8 — остаётся топ-4",
+    ],
+    note: "После третьего и шестого матчей организаторы могут объявить перерыв.",
+    tone: "sky",
+  },
+  {
+    id: "pro",
+    name: "Про",
+    description: "Самый быстрый дивизион с лимитом в 15 минут.",
+    timeLimit: "15 минут",
+    matchCount: 8,
+    completions: [12, 12, 12, 10, 8, 8, 6, 4],
+    eliminations: [
+      "После матча 3 — выбывают участники без очков",
+      "После матча 5 — остаётся топ-8",
+      "После матча 7 — остаётся топ-6",
+      "После матча 8 — остаётся топ-4",
+    ],
+    note: "При равенстве очков решающим становится лучшее среднее время.",
+    tone: "violet",
+  },
+] as const
+
+const scoringRows = [
+  { limit: 4, points: [24, 22, 20, 18] },
+  { limit: 6, points: [24, 22, 20, 18, 16, 14] },
+  { limit: 8, points: [24, 22, 20, 18, 16, 14, 12, 10] },
+  { limit: 10, points: [24, 22, 20, 18, 16, 14, 12, 10, 8, 6] },
+  { limit: 12, points: [24, 22, 20, 18, 16, 14, 12, 10, 8, 6, 4, 2] },
+] as const
+---
+
+<MainLayout
+  title="Правила и формат — MCSR Сабинск"
+  description="Формат квалификации, система очков, выбывание и правила плей-офф MCSR Сабинск."
+  activePage="rules"
+>
+  <div class="rules-page">
+    <section class="rules-hero" aria-labelledby="rules-title">
+      <div class="rules-hero-copy">
+        <span class="rules-kicker">Официальный регламент</span>
+        <h1 id="rules-title">Правила и формат</h1>
+        <p>
+          Всё, что нужно знать перед стартом: от квалификационных матчей и
+          начисления очков до плей-офф и поведения участников.
+        </p>
+        <div class="rules-hero-actions">
+          <a class="rules-primary-link" href="#qualification">
+            Читать правила
+            <span aria-hidden="true">↓</span>
+          </a>
+          <a class="rules-secondary-link" href="/">
+            Открыть турниры
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+      <div class="rules-hero-stats" aria-label="Кратко о формате">
+        <div>
+          <strong>3</strong>
+          <span>дивизиона</span>
+        </div>
+        <div>
+          <strong>24</strong>
+          <span>очка за первое место</span>
+        </div>
+        <div>
+          <strong>2</strong>
+          <span>этапа турнира</span>
+        </div>
+      </div>
+    </section>
+
+    <nav class="rules-toc" aria-label="Содержание правил">
+      <a href="#qualification">Квалификация</a>
+      <a href="#scoring">Очки</a>
+      <a href="#playoff">Плей-офф</a>
+      <a href="#conduct">Участникам</a>
+      <a href="#broadcasts">Трансляции</a>
+    </nav>
+
+    <section class="rules-section" id="qualification">
+      <div class="rules-section-heading">
+        <span>01</span>
+        <div>
+          <p>Первый этап</p>
+          <h2>Квалификация</h2>
+        </div>
+      </div>
+      <p class="rules-section-lead">
+        Игроки соревнуются внутри своего дивизиона. После контрольных матчей
+        применяется накопительное выбывание: вернуться в квалификацию можно
+        только после официального исправления результатов.
+      </p>
+
+      <div class="division-rule-grid">
+        {
+          divisions.map((division) => (
+            <article
+              class="division-rule-card"
+              data-tone={division.tone}
+              id={division.id}
+            >
+              <header>
+                <div>
+                  <span>{division.matchCount} матчей</span>
+                  <h3>{division.name}</h3>
+                </div>
+                <strong>{division.timeLimit}</strong>
+              </header>
+              <p>{division.description}</p>
+              <div
+                class="completion-track"
+                data-count={division.matchCount}
+                aria-label="Лимиты комплишенов"
+              >
+                {division.completions.map((completion, index) => (
+                  <div>
+                    <span>М{index + 1}</span>
+                    <strong>{completion}</strong>
+                    <small>компл.</small>
+                  </div>
+                ))}
+              </div>
+              <ul class="elimination-list">
+                {division.eliminations.map((elimination) => (
+                  <li>{elimination}</li>
+                ))}
+              </ul>
+              <p class="division-note">{division.note}</p>
+            </article>
+          ))
+        }
+      </div>
+
+      <aside class="rules-callout">
+        <span aria-hidden="true">i</span>
+        <div>
+          <strong>Что такое комплишены?</strong>
+          <p>
+            Это максимальное число финишёров, которые могут получить очки в
+            конкретном матче. Если финишировало меньше игроков, очки всё равно
+            рассчитываются по установленному лимиту.
+          </p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="rules-section" id="scoring">
+      <div class="rules-section-heading">
+        <span>02</span>
+        <div>
+          <p>Лидерборд</p>
+          <h2>Очки и тай-брейк</h2>
+        </div>
+      </div>
+
+      <div class="scoring-layout">
+        <article class="formula-card">
+          <span>Формула за финиш</span>
+          <strong>24 − 2 × (место − 1)</strong>
+          <p>
+            Первое место всегда получает <mark>24 очка</mark>. Каждый следующий
+            финишёр — на два очка меньше, пока его место не превышает лимит
+            комплишенов.
+          </p>
+        </article>
+        <div class="result-state-grid">
+          <article>
+            <span class="state-dot state-finish"></span>
+            <strong>Финиш</strong>
+            <p>Фактическое время и очки за занятое место.</p>
+          </article>
+          <article>
+            <span class="state-dot state-dnf"></span>
+            <strong>DNF</strong>
+            <p>Ноль очков, в среднее записывается лимит времени.</p>
+          </article>
+          <article>
+            <span class="state-dot state-missed"></span>
+            <strong>Пропуск</strong>
+            <p>Ноль очков и лимит времени при расчёте среднего.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="score-table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>Комплишены</th>
+              <th>Очки по местам</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              scoringRows.map((row) => (
+                <tr>
+                  <th>{row.limit}</th>
+                  <td>
+                    {row.points.map((points, index) => (
+                      <span>
+                        <small>{index + 1}</small>
+                        {points}
+                      </span>
+                    ))}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tiebreak-card">
+        <strong>Если очков поровну</strong>
+        <ol>
+          <li><span>1</span>Лучшее среднее время</li>
+          <li><span>2</span>Ник в алфавитном порядке</li>
+          <li><span>3</span>Ranked UUID для полной определённости</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="rules-section" id="playoff">
+      <div class="rules-section-heading">
+        <span>03</span>
+        <div>
+          <p>Финальный этап</p>
+          <h2>Плей-офф</h2>
+        </div>
+      </div>
+      <div class="playoff-rules-grid">
+        <article>
+          <span class="rule-number">01</span>
+          <h3>Участники и пары</h3>
+          <p>
+            Базово в сетку проходят четыре лучших игрока квалификации.
+            Организаторы публикуют итоговые пары перед стартом плей-офф.
+          </p>
+        </article>
+        <article>
+          <span class="rule-number">02</span>
+          <h3>Полуфиналы</h3>
+          <p>
+            Серия <mark>best of 3</mark>: для победы необходимо выиграть два
+            забега.
+          </p>
+        </article>
+        <article>
+          <span class="rule-number">03</span>
+          <h3>Финал</h3>
+          <p>
+            Серия <mark>best of 5</mark>: чемпион определяется после трёх побед.
+          </p>
+        </article>
+        <article>
+          <span class="rule-number">04</span>
+          <h3>Пики и баны</h3>
+          <p>
+            Перед серией игроки выбирают и запрещают типы мира и бастиона. У
+            каждого игрока доступен один бан.
+          </p>
+        </article>
+      </div>
+      <aside class="rules-warning">
+        <strong>Важно</strong>
+        <p>
+          В плей-офф нет общего лимита времени. Намеренное затягивание матча
+          может привести к санкциям по решению организаторов.
+        </p>
+      </aside>
+    </section>
+
+    <section class="rules-section" id="conduct">
+      <div class="rules-section-heading">
+        <span>04</span>
+        <div>
+          <p>Fair play</p>
+          <h2>Правила для участников</h2>
+        </div>
+      </div>
+      <div class="conduct-grid">
+        <article>
+          <span aria-hidden="true">01</span>
+          <div>
+            <h3>Уважение</h3>
+            <p>
+              Соблюдайте нормы общения и выполняйте указания организаторов.
+              Оскорбления и намеренное создание помех недопустимы.
+            </p>
+          </div>
+        </article>
+        <article>
+          <span aria-hidden="true">02</span>
+          <div>
+            <h3>Общий голосовой канал</h3>
+            <p>
+              Во время турнира участник должен находиться в общем голосовом
+              канале с выключенным микрофоном, если доступ к серверу позволяет.
+            </p>
+          </div>
+        </article>
+        <article>
+          <span aria-hidden="true">03</span>
+          <div>
+            <h3>Готовность к матчу</h3>
+            <p>
+              Подключайтесь заранее и сообщайте о технических проблемах до
+              старта. Расписание всегда указывается по московскому времени.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="broadcast-card" id="broadcasts">
+      <div>
+        <span class="rules-kicker">Организаторы</span>
+        <h2>insvent и kowalskitime</h2>
+        <p>
+          Расписание и возможные изменения формата публикуются организаторами
+          перед началом соответствующего турнира.
+        </p>
+      </div>
+      <div class="broadcast-links">
+        <a
+          href="https://www.twitch.tv/illooncrack"
+          target="_blank"
+          rel="noreferrer"
+        >
+          illooncrack
+          <span aria-hidden="true">↗</span>
+        </a>
+        <a
+          href="https://www.twitch.tv/insvent"
+          target="_blank"
+          rel="noreferrer"
+        >
+          insvent
+          <span aria-hidden="true">↗</span>
+        </a>
+        <a
+          href="https://www.twitch.tv/kowalski_time"
+          target="_blank"
+          rel="noreferrer"
+        >
+          kowalski_time
+          <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </section>
+  </div>
+</MainLayout>
